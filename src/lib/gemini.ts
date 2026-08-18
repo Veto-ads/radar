@@ -114,10 +114,22 @@ export async function analyzeSightingVideo(
     const result = await generateContentWithRetry(model, [videoPart, { text: prompt }], statusKey);
     const text = result.response.text();
     const parsed = JSON.parse(text) as { ads: GeminiAd[] };
-    return parsed.ads || [];
+    return dedupeAdsByCompany(parsed.ads || []);
   } finally {
     if (statusKey) retryStatusByKey.delete(statusKey);
   }
+}
+
+function dedupeAdsByCompany(ads: GeminiAd[]): GeminiAd[] {
+  const seen = new Set<string>();
+  const result: GeminiAd[] = [];
+  for (const ad of ads) {
+    const key = ad.company_name.trim().toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(ad);
+  }
+  return result;
 }
 
 const RETRYABLE_STATUS = [503, 429];

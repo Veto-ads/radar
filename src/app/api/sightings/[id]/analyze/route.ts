@@ -34,6 +34,8 @@ export async function POST(_request: Request, context: RouteContext<"/api/sighti
     return NextResponse.json({ error: message }, { status: 502 });
   }
 
+  db.prepare("DELETE FROM ads WHERE sighting_id = ?").run(id);
+
   const insertAd = db.prepare(
     `INSERT INTO ads (id, sighting_id, company_name, sector, duration_seconds, repeats_per_minute, repeats_per_day, frame_image_url, objective)
      VALUES (?,?,?,?,?,?,?,?,?)`
