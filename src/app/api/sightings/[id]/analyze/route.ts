@@ -28,7 +28,7 @@ export async function POST(_request: Request, context: RouteContext<"/api/sighti
 
   let ads;
   try {
-    ads = await analyzeSightingVideo(absoluteVideoPath, promptRow.value);
+    ads = await analyzeSightingVideo(absoluteVideoPath, promptRow.value, id);
   } catch (err) {
     const message = err instanceof Error ? err.message : "فشل تحليل الفيديو";
     return NextResponse.json({ error: message }, { status: 502 });

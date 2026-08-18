@@ -29,6 +29,7 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
   const [analyzing, setAnalyzing] = useState<string | null>(null);
   const [analyzeResult, setAnalyzeResult] = useState<GeminiAd[] | null>(null);
   const [error, setError] = useState("");
+  const [retryMessage, setRetryMessage] = useState("");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -57,6 +58,13 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
   async function analyze(id: string) {
     setAnalyzing(id);
     setError("");
+    setRetryMessage("");
+    const poll = setInterval(() => {
+      fetch(`/api/sightings/${id}/analyze-status`)
+        .then((r) => r.json())
+        .then((d) => setRetryMessage(d.status?.message || ""))
+        .catch(() => {});
+    }, 1500);
     try {
       const res = await fetch(`/api/sightings/${id}/analyze`, { method: "POST" });
       const data = await res.json();
@@ -68,7 +76,9 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
       load();
       onAnalyzed();
     } finally {
+      clearInterval(poll);
       setAnalyzing(null);
+      setRetryMessage("");
     }
   }
 
@@ -171,6 +181,11 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
                       حذف
                     </button>
                   </div>
+                  {analyzing === r.id && retryMessage && (
+                    <div style={{ marginTop: 6, fontSize: "var(--fs-caption)", color: "var(--veto-amber, #b45309)" }}>
+                      {retryMessage}
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

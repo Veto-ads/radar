@@ -60,9 +60,17 @@ function mimeTypeFromExt(filePath: string): string {
   return map[ext || ""] || "video/mp4";
 }
 
+export type RetryStatus = { attempt: number; maxAttempts: number; message: string };
+const retryStatusByKey = new Map<string, RetryStatus>();
+
+export function getRetryStatus(key: string): RetryStatus | undefined {
+  return retryStatusByKey.get(key);
+}
+
 export async function analyzeSightingVideo(
   absoluteVideoPath: string,
-  prompt: string
+  prompt: string,
+  statusKey?: string
 ): Promise<GeminiAd[]> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -102,10 +110,14 @@ export async function analyzeSightingVideo(
     videoPart = { inlineData: { data: buffer.toString("base64"), mimeType } };
   }
 
-  const result = await generateContentWithRetry(model, [videoPart, { text: prompt }]);
-  const text = result.response.text();
-  const parsed = JSON.parse(text) as { ads: GeminiAd[] };
-  return parsed.ads || [];
+  try {
+    const result = await generateContentWithRetry(model, [videoPart, { text: prompt }], statusKey);
+    const text = result.response.text();
+    const parsed = JSON.parse(text) as { ads: GeminiAd[] };
+    return parsed.ads || [];
+  } finally {
+    if (statusKey) retryStatusByKey.delete(statusKey);
+  }
 }
 
 const RETRYABLE_STATUS = [503, 429];
@@ -113,7 +125,8 @@ const RETRY_DELAYS_MS = [2000, 5000, 10000];
 
 async function generateContentWithRetry(
   model: ReturnType<GoogleGenerativeAI["getGenerativeModel"]>,
-  parts: Parameters<ReturnType<GoogleGenerativeAI["getGenerativeModel"]>["generateContent"]>[0]
+  parts: Parameters<ReturnType<GoogleGenerativeAI["getGenerativeModel"]>["generateContent"]>[0],
+  statusKey?: string
 ) {
   for (let attempt = 0; ; attempt++) {
     try {
@@ -122,6 +135,13 @@ async function generateContentWithRetry(
       const status = (err as { status?: number })?.status;
       if (!RETRYABLE_STATUS.includes(status ?? 0) || attempt >= RETRY_DELAYS_MS.length) {
         throw err;
+      }
+      if (statusKey) {
+        retryStatusByKey.set(statusKey, {
+          attempt: attempt + 1,
+          maxAttempts: RETRY_DELAYS_MS.length,
+          message: `خادم Gemini مشغول حالياً، إعادة المحاولة (${attempt + 1}/${RETRY_DELAYS_MS.length})...`,
+        });
       }
       await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
     }
