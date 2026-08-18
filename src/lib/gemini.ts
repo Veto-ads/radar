@@ -102,8 +102,28 @@ export async function analyzeSightingVideo(
     videoPart = { inlineData: { data: buffer.toString("base64"), mimeType } };
   }
 
-  const result = await model.generateContent([videoPart, { text: prompt }]);
+  const result = await generateContentWithRetry(model, [videoPart, { text: prompt }]);
   const text = result.response.text();
   const parsed = JSON.parse(text) as { ads: GeminiAd[] };
   return parsed.ads || [];
+}
+
+const RETRYABLE_STATUS = [503, 429];
+const RETRY_DELAYS_MS = [2000, 5000, 10000];
+
+async function generateContentWithRetry(
+  model: ReturnType<GoogleGenerativeAI["getGenerativeModel"]>,
+  parts: Parameters<ReturnType<GoogleGenerativeAI["getGenerativeModel"]>["generateContent"]>[0]
+) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await model.generateContent(parts);
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      if (!RETRYABLE_STATUS.includes(status ?? 0) || attempt >= RETRY_DELAYS_MS.length) {
+        throw err;
+      }
+      await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
+    }
+  }
 }
