@@ -51,7 +51,7 @@ export async function GET(request: Request) {
     .all(params);
 
   return NextResponse.json({
-    ads: rows.map((r) => {
+    ads: rows.map((r: unknown) => {
       const row = r as Record<string, unknown>;
       return { ...row, board_streets: JSON.parse((row.board_streets as string) || "[]") };
     }),

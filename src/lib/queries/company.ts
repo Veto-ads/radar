@@ -87,7 +87,15 @@ export function getCompanyStats(name: string, from: string, to: string) {
        WHERE s.status='analyzed' AND a.company_name=@name AND s.captured_date BETWEEN @from AND @to
        ORDER BY s.captured_date DESC`
     )
-    .all(params) as { month: string }[];
+    .all(params) as {
+      month: string;
+      id: string;
+      frame_image_url: string | null;
+      objective: string | null;
+      captured_date: string;
+      board_name: string;
+      board_type: string;
+    }[];
 
   const monthlyArchive: Record<string, typeof archiveRows> = {};
   for (const row of archiveRows) {

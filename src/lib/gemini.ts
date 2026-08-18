@@ -1,10 +1,10 @@
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType, type Schema } from "@google/generative-ai";
 import { GoogleAIFileManager, FileState } from "@google/generative-ai/server";
 import { readFile } from "node:fs/promises";
 
 const INLINE_LIMIT_BYTES = 15 * 1024 * 1024;
 
-const responseSchema = {
+const responseSchema: Schema = {
   type: SchemaType.OBJECT,
   properties: {
     ads: {
@@ -36,7 +36,7 @@ const responseSchema = {
     },
   },
   required: ["ads"],
-} as const;
+};
 
 export type GeminiAd = {
   company_name: string;
