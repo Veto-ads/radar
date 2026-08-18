@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth";
 import { analyzeSightingVideo } from "@/lib/gemini";
 import { captureVideoFrame } from "@/lib/frameCapture";
 import { createSectorFramePlaceholder } from "@/lib/placeholder";
+import { normalizeAdDuration } from "@/lib/adDuration";
 
 export async function POST(_request: Request, context: RouteContext<"/api/sightings/[id]/analyze">) {
   const session = await getSession();
@@ -51,18 +52,19 @@ export async function POST(_request: Request, context: RouteContext<"/api/sighti
       frameUrl = await createSectorFramePlaceholder(ad.sector, ad.company_name);
     }
     const adId = randomUUID();
+    const duration = normalizeAdDuration(ad.duration_seconds);
     insertAd.run(
       adId,
       id,
       ad.company_name,
       ad.sector,
-      ad.duration_seconds,
+      duration,
       ad.repeats_per_minute,
       ad.repeats_per_day,
       frameUrl,
       ad.objective
     );
-    savedAds.push({ id: adId, ...ad, frame_image_url: frameUrl });
+    savedAds.push({ id: adId, ...ad, duration_seconds: duration, frame_image_url: frameUrl });
   }
 
   db.prepare("UPDATE sightings SET status = 'analyzed' WHERE id = ?").run(id);
