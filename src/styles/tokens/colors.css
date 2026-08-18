@@ -1,0 +1,72 @@
+/* Veto Ads — Colour tokens
+ * Values transcribed verbatim from the source file's colour inventory.
+ * Three brand pillars: navy (structure), green (primary action), cyan (accent). */
+
+:root {
+  /* ─ Core brand ─ */
+  --veto-navy:        rgb(35,35,90);    /* #23235A — primary brand, headings, secondary buttons */
+  --veto-green:       rgb(80,173,104);  /* #50AD68 — primary CTA, success, active nav */
+  --veto-cyan:        rgb(0,180,216);   /* #00B4D8 — accent, feature ribbon, totals */
+
+  /* ─ Navy scale (dark surfaces: hero, footer, stat cards) ─ */
+  --navy-900:         rgb(18,22,58);    /* #12163A — hero / footer canvas */
+  --navy-850:         rgb(27,27,72);    /* #1B1B48 */
+  --navy-800:         rgb(33,33,66);    /* #212142 */
+  --navy-700:         rgb(35,35,90);    /* #23235A — = --veto-navy */
+  --navy-600:         rgb(36,40,112);   /* #242870 — stat-card gradient top */
+  --navy-500:         rgb(66,69,142);   /* #42458E */
+  --navy-450:         rgb(68,81,147);   /* #445193 — indigo */
+  --navy-400:         rgb(84,84,161);   /* #5454A1 */
+
+  /* ─ Indigo / lavender tints (chips, card fills, accents) ─ */
+  --indigo-300:       rgb(139,142,213); /* #8B8ED5 */
+  --lavender-300:     rgb(169,170,236); /* #A9AAEC */
+  --lavender-200:     rgb(184,184,236); /* #B8B8EC */
+  --lavender-100:     rgb(213,213,249); /* #D5D5F9 */
+  --lavender-050:     rgb(228,228,251); /* #E4E4FB */
+
+  /* ─ Green scale ─ */
+  --green-600:        rgb(64,150,88);   /* #409658 — hover / pressed CTA */
+  --green-500:        rgb(80,173,104);  /* #50AD68 — = --veto-green */
+  --green-100:        rgb(224,242,229); /* #E0F2E5 — green chip fill */
+
+  /* ─ Cyan scale ─ */
+  --cyan-500:         rgb(0,180,216);   /* #00B4D8 */
+  --cyan-100:         rgb(214,244,249); /* #D6F4F9 — cyan chip fill */
+
+  /* ─ Ink & neutrals ─ */
+  --ink-900:          rgb(0,0,0);       /* #000000 */
+  --ink-800:          rgb(30,30,30);    /* #1E1E1E — body heading */
+  --grey-600:         rgb(106,106,106); /* #6A6A6A — muted text */
+  --grey-400:         rgb(156,165,178); /* #9CA5B2 — placeholder / disabled */
+  --blue-grey-400:    rgb(153,178,198); /* #99B2C6 */
+  --grey-300:         rgb(195,195,195); /* #C3C3C3 — strong border */
+  --grey-250:         rgb(217,217,217); /* #D9D9D9 */
+  --grey-200:         rgb(218,218,218); /* #DADADA — default border */
+  --grey-150:         rgb(233,233,233); /* #E9E9E9 */
+
+  /* ─ Surfaces ─ */
+  --surface-page:     rgb(255,255,255); /* #FFFFFF */
+  --surface-muted:    rgb(242,242,250); /* #F2F2FA — light section / table head */
+  --surface-offwhite: rgb(249,252,251); /* #F9FCFB */
+  --surface-white:    rgb(255,255,255);
+
+  /* ─ Semantic ─ */
+  --danger-500:       rgb(224,64,64);   /* #E04040 — delete / logout */
+
+  /* ─ Semantic aliases (prefer these in product code) ─ */
+  --color-primary:        var(--veto-green);
+  --color-primary-hover:  var(--green-600);
+  --color-secondary:      var(--veto-navy);
+  --color-accent:         var(--veto-cyan);
+  --text-heading:         var(--veto-navy);
+  --text-body:            var(--ink-800);
+  --text-muted:           var(--grey-600);
+  --text-placeholder:     var(--grey-400);
+  --text-on-dark:         var(--surface-white);
+  --border-default:       var(--grey-200);
+  --border-strong:        var(--grey-300);
+  --border-focus:         var(--veto-green);
+  --surface-card:         var(--surface-white);
+  --surface-dark:         var(--navy-900);
+}

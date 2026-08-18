@@ -1,0 +1,24 @@
+/* Veto Ads — Radii & shadows (values from the source) */
+
+:root {
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 15px;   /* cards, FAB, primary buttons on marketing */
+  --radius-xl: 20px;   /* large panels, stat cards */
+  --radius-2xl: 24px;
+  --radius-pill: 99999px;
+
+  /* Shadows */
+  --shadow-xs: 0px 1px 2px 0px rgba(0,0,0,0.05);
+  --shadow-sm: 0px 1px 2px 0px rgba(0,0,0,0.05), 0px 1px 10px 0px rgba(0,0,0,0.15);
+  --shadow-card: 0px 4px 24px 0px rgba(0,0,0,0.12);
+  --shadow-pop: 0px 10px 10px 0px rgba(0,0,0,0.25);
+  --shadow-focus: 0 0 0 3px rgba(80,173,104,0.20);
+
+  /* Dark stat-card gradient (dashboard) */
+  --gradient-stat: linear-gradient(150deg, rgb(36,40,112) 0%, rgb(27,27,72) 100%); /* @kind other */
+  /* Hero / footer canvas */
+  --gradient-hero: linear-gradient(180deg, rgb(18,22,58) 0%, rgb(27,27,72) 100%); /* @kind other */
+  /* Cyan → navy total pill */
+  --gradient-total: linear-gradient(90deg, rgb(0,180,216) 0%, rgb(35,35,90) 100%); /* @kind other */
+}

@@ -1,0 +1,118 @@
+@import "tailwindcss";
+@import "../styles/tokens/colors.css";
+@import "../styles/tokens/spacing.css";
+@import "../styles/tokens/typography.css";
+@import "../styles/tokens/effects.css";
+
+@theme inline {
+  --color-veto-navy: var(--veto-navy);
+  --color-veto-green: var(--veto-green);
+  --color-veto-cyan: var(--veto-cyan);
+  --color-background: var(--surface-muted);
+  --color-foreground: var(--text-body);
+  --font-sans: var(--font-sans);
+}
+
+body {
+  background: var(--surface-muted);
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--grey-300);
+  border-radius: var(--radius-pill);
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+}
+
+.card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+}
+
+.btn-primary {
+  background: var(--veto-green);
+  color: var(--text-on-dark);
+  border-radius: var(--radius-pill);
+  font: var(--text-label);
+  transition: background 0.15s ease;
+}
+.btn-primary:hover {
+  background: var(--green-600);
+}
+.btn-primary:disabled {
+  background: var(--grey-300);
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--surface-white);
+  color: var(--veto-navy);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  font: var(--text-label);
+}
+
+.btn-danger {
+  color: var(--danger-500);
+}
+
+.field-input {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: var(--fs-body);
+  color: var(--text-body);
+  background: var(--surface-white);
+  width: 100%;
+}
+.field-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-focus);
+}
+.field-input:disabled {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.field-label {
+  font: var(--text-label);
+  color: var(--text-heading);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--radius-pill);
+  font: var(--text-pill);
+  padding: 4px 10px;
+}
+.chip-green {
+  background: var(--green-100);
+  color: var(--green-600);
+}
+.chip-cyan {
+  background: var(--cyan-100);
+  color: var(--veto-navy);
+}

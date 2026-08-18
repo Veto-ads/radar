@@ -1,0 +1,21 @@
+/* Veto Ads — Spacing scale
+ * Base spacing unit in the source variables is 4px (Spacing/A). */
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+  --space-12: 80px;
+  --space-16: 120px;
+
+  /* Common container widths seen in the source */
+  --page-max: 1440px;
+  --content-max: 1280px;
+}
