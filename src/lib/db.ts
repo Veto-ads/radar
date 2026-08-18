@@ -125,6 +125,9 @@ function init(db: Database.Database) {
   if (!userColumns.some((c) => c.name === "reset_requested_at")) {
     db.exec("ALTER TABLE users ADD COLUMN reset_requested_at TEXT");
   }
+  if (!userColumns.some((c) => c.name === "failed_attempts")) {
+    db.exec("ALTER TABLE users ADD COLUMN failed_attempts INTEGER NOT NULL DEFAULT 0");
+  }
 
   const typeCount = db.prepare("SELECT COUNT(*) as c FROM board_types").get() as { c: number };
   if (typeCount.c === 0) {

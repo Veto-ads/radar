@@ -9,6 +9,8 @@ export type User = {
   custom_role: string | null;
   status: "active" | "frozen";
   created_at: string;
+  reset_requested_at: string | null;
+  failed_attempts: number;
 };
 
 export type Permissions = {

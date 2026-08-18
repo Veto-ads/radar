@@ -17,19 +17,21 @@ export async function PATCH(request: Request, context: RouteContext<"/api/users/
 
   if (body.full_name !== undefined || body.role !== undefined || body.custom_role !== undefined || body.status !== undefined) {
     const current = db.prepare("SELECT * FROM users WHERE id = ?").get(id) as Record<string, unknown>;
+    const nextStatus = body.status ?? current.status;
     db.prepare(
-      `UPDATE users SET full_name=@full_name, role=@role, custom_role=@custom_role, status=@status WHERE id=@id`
+      `UPDATE users SET full_name=@full_name, role=@role, custom_role=@custom_role, status=@status,
+       failed_attempts = CASE WHEN @status = 'active' THEN 0 ELSE failed_attempts END WHERE id=@id`
     ).run({
       id,
       full_name: body.full_name ?? current.full_name,
       role: body.role ?? current.role,
       custom_role: body.custom_role ?? current.custom_role,
-      status: body.status ?? current.status,
+      status: nextStatus,
     });
   }
 
   if (body.password) {
-    db.prepare("UPDATE users SET password_hash = ?, reset_requested_at = NULL WHERE id = ?").run(
+    db.prepare("UPDATE users SET password_hash = ?, reset_requested_at = NULL, failed_attempts = 0 WHERE id = ?").run(
       bcrypt.hashSync(body.password, 10),
       id
     );
