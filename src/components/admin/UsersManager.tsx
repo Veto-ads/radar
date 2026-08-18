@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import AddUserModal from "./AddUserModal";
 import AssignBoardsModal from "./AssignBoardsModal";
+import ChangePasswordModal from "./ChangePasswordModal";
 
 type UserRow = {
   id: string;
@@ -30,6 +31,7 @@ export default function UsersManager() {
   const [addOpen, setAddOpen] = useState(false);
   const [editingName, setEditingName] = useState<{ id: string; value: string } | null>(null);
   const [assigningUser, setAssigningUser] = useState<UserRow | null>(null);
+  const [passwordUser, setPasswordUser] = useState<UserRow | null>(null);
 
   function load() {
     fetch("/api/users")
@@ -159,9 +161,18 @@ export default function UsersManager() {
                   )}
                 </td>
                 <td style={{ padding: 10 }}>
-                  <button onClick={() => remove(u.id)} className="btn-danger" style={{ fontSize: "var(--fs-caption)" }}>
-                    حذف
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setPasswordUser(u)}
+                      className="btn-secondary"
+                      style={{ padding: "6px 12px", fontSize: "var(--fs-caption)" }}
+                    >
+                      كلمة المرور
+                    </button>
+                    <button onClick={() => remove(u.id)} className="btn-danger" style={{ fontSize: "var(--fs-caption)" }}>
+                      حذف
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -175,6 +186,14 @@ export default function UsersManager() {
           userId={assigningUser.id}
           userName={assigningUser.full_name}
           onClose={() => setAssigningUser(null)}
+        />
+      )}
+      {passwordUser && (
+        <ChangePasswordModal
+          userId={passwordUser.id}
+          userName={passwordUser.full_name}
+          onClose={() => setPasswordUser(null)}
+          onSaved={load}
         />
       )}
     </div>
