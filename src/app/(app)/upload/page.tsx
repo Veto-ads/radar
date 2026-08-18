@@ -4,6 +4,12 @@ import { useEffect, useState, type FormEvent } from "react";
 import BoardCombobox from "@/components/BoardCombobox";
 import type { Board } from "@/lib/types";
 
+const MAX_VIDEO_BYTES = 150 * 1024 * 1024;
+
+function formatMB(bytes: number) {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} ميجابايت`;
+}
+
 export default function UploadPage() {
   const [board, setBoard] = useState<Board | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -33,6 +39,10 @@ export default function UploadPage() {
     }
     if (!file) {
       setError("يرجى إضافة مقطع فيديو");
+      return;
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      setError(`حجم الفيديو (${formatMB(file.size)}) يتجاوز الحد الأقصى المسموح (150 ميجابايت)`);
       return;
     }
     setSubmitting(true);
@@ -114,13 +124,22 @@ export default function UploadPage() {
           </div>
 
           <div>
-            <label className="field-label">إضافة فيديو</label>
+            <label className="field-label">إضافة فيديو (الحد الأقصى 150 ميجابايت)</label>
             <input
               className="field-input"
               type="file"
               accept="video/*"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              onChange={(e) => {
+                const f = e.target.files?.[0] || null;
+                setFile(f);
+                setError(f && f.size > MAX_VIDEO_BYTES ? `حجم الفيديو (${formatMB(f.size)}) يتجاوز الحد الأقصى المسموح (150 ميجابايت)` : "");
+              }}
             />
+            {file && (
+              <p style={{ fontSize: "var(--fs-caption)", color: "var(--text-muted)", marginTop: 4 }}>
+                حجم الملف: {formatMB(file.size)}
+              </p>
+            )}
           </div>
 
           {error && <p style={{ color: "var(--danger-500)", fontSize: 13 }}>{error}</p>}
@@ -139,7 +158,12 @@ export default function UploadPage() {
             </div>
           )}
 
-          <button type="submit" disabled={submitting} className="btn-primary" style={{ padding: "12px 0" }}>
+          <button
+            type="submit"
+            disabled={submitting || !!(file && file.size > MAX_VIDEO_BYTES)}
+            className="btn-primary"
+            style={{ padding: "12px 0" }}
+          >
             {submitting ? "جاري الإرسال..." : "إرسال"}
           </button>
         </form>

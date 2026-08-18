@@ -129,6 +129,11 @@ function init(db: Database.Database) {
     db.exec("ALTER TABLE users ADD COLUMN failed_attempts INTEGER NOT NULL DEFAULT 0");
   }
 
+  const sightingColumns = db.prepare("PRAGMA table_info(sightings)").all() as { name: string }[];
+  if (!sightingColumns.some((c) => c.name === "video_size_bytes")) {
+    db.exec("ALTER TABLE sightings ADD COLUMN video_size_bytes INTEGER");
+  }
+
   const typeCount = db.prepare("SELECT COUNT(*) as c FROM board_types").get() as { c: number };
   if (typeCount.c === 0) {
     const insertType = db.prepare("INSERT INTO board_types (id, name) VALUES (?, ?)");

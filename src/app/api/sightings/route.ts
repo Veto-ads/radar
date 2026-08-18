@@ -7,6 +7,8 @@ import { getSession } from "@/lib/auth";
 import { nextSightingCode } from "@/lib/code";
 import { isBoardAllowedForUser } from "@/lib/boardAssignments";
 
+const MAX_VIDEO_BYTES = 150 * 1024 * 1024;
+
 export async function GET(request: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "غير مصرح" }, { status: 401 });
@@ -80,6 +82,9 @@ export async function POST(request: Request) {
   if (!(file instanceof File) || file.size === 0) {
     return NextResponse.json({ error: "يرجى إرفاق مقطع فيديو" }, { status: 400 });
   }
+  if (file.size > MAX_VIDEO_BYTES) {
+    return NextResponse.json({ error: "حجم الفيديو يتجاوز الحد الأقصى المسموح (150 ميجابايت)" }, { status: 400 });
+  }
 
   const db = getDb();
   const board = db.prepare("SELECT id FROM boards WHERE id = ?").get(boardId);
@@ -104,9 +109,9 @@ export async function POST(request: Request) {
   const code = nextSightingCode();
 
   db.prepare(
-    `INSERT INTO sightings (id, code, board_id, rasid_id, video_url, captured_date, captured_time, status)
-     VALUES (?,?,?,?,?,?,?, 'pending')`
-  ).run(id, code, boardId, session.id, `/uploads/videos/${fileName}`, capturedDate, capturedTime);
+    `INSERT INTO sightings (id, code, board_id, rasid_id, video_url, video_size_bytes, captured_date, captured_time, status)
+     VALUES (?,?,?,?,?,?,?,?, 'pending')`
+  ).run(id, code, boardId, session.id, `/uploads/videos/${fileName}`, file.size, capturedDate, capturedTime);
 
   return NextResponse.json({ id, code }, { status: 201 });
 }

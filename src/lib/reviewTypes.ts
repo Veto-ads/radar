@@ -8,6 +8,7 @@ export type SightingRow = {
   rasid_id: string;
   rasid_name: string;
   video_url: string;
+  video_size_bytes: number | null;
   captured_date: string;
   captured_time: string;
   status: "pending" | "analyzed" | "deleted";

@@ -127,7 +127,7 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-xs)" }}>
           <thead>
             <tr style={{ background: "var(--surface-muted)" }}>
-              {["كود الرصد", "اللوحة", "الراصد", "التاريخ/الوقت", "الفيديو", "الحالة", "إجراءات"].map((h) => (
+              {["كود الرصد", "اللوحة", "الراصد", "التاريخ/الوقت", "الفيديو", "حجم الفيديو", "الحالة", "إجراءات"].map((h) => (
                 <th key={h} style={{ padding: 10, textAlign: "start", color: "var(--text-heading)" }}>
                   {h}
                 </th>
@@ -150,6 +150,9 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
                   <button onClick={() => setVideoModal(r.video_url)} style={{ color: "var(--veto-cyan)" }}>
                     ▶ تشغيل
                   </button>
+                </td>
+                <td style={{ padding: 10, color: "var(--text-muted)" }}>
+                  {r.video_size_bytes ? `${(r.video_size_bytes / (1024 * 1024)).toFixed(1)} MB` : "—"}
                 </td>
                 <td style={{ padding: 10 }}>
                   <span className={r.status === "analyzed" ? "chip chip-green" : "chip chip-cyan"}>
