@@ -29,7 +29,10 @@ export async function PATCH(request: Request, context: RouteContext<"/api/users/
   }
 
   if (body.password) {
-    db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(bcrypt.hashSync(body.password, 10), id);
+    db.prepare("UPDATE users SET password_hash = ?, reset_requested_at = NULL WHERE id = ?").run(
+      bcrypt.hashSync(body.password, 10),
+      id
+    );
   }
 
   if (

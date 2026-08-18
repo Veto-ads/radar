@@ -121,6 +121,11 @@ function init(db: Database.Database) {
     db.exec("ALTER TABLE boards ADD COLUMN price_duration_days INTEGER NOT NULL DEFAULT 14");
   }
 
+  const userColumns = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+  if (!userColumns.some((c) => c.name === "reset_requested_at")) {
+    db.exec("ALTER TABLE users ADD COLUMN reset_requested_at TEXT");
+  }
+
   const typeCount = db.prepare("SELECT COUNT(*) as c FROM board_types").get() as { c: number };
   if (typeCount.c === 0) {
     const insertType = db.prepare("INSERT INTO board_types (id, name) VALUES (?, ?)");

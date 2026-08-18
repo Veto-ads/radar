@@ -16,6 +16,7 @@ type UserRow = {
   can_review: number;
   can_dashboard: number;
   can_admin: number;
+  reset_requested_at: string | null;
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -161,7 +162,7 @@ export default function UsersManager() {
                   )}
                 </td>
                 <td style={{ padding: 10 }}>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => setPasswordUser(u)}
                       className="btn-secondary"
@@ -173,6 +174,11 @@ export default function UsersManager() {
                       حذف
                     </button>
                   </div>
+                  {u.reset_requested_at && (
+                    <div className="chip" style={{ marginTop: 6, background: "var(--warning-100, #fef3c7)", color: "var(--warning-700, #b45309)" }}>
+                      طلب إعادة تعيين كلمة المرور
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import ForgotPasswordModal from "@/components/ForgotPasswordModal";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -102,9 +104,17 @@ export default function LoginPage() {
             >
               {loading ? "جاري الدخول..." : "تسجيل الدخول"}
             </button>
+            <button
+              type="button"
+              onClick={() => setForgotOpen(true)}
+              style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", textAlign: "center" }}
+            >
+              نسيت الرقم السري؟
+            </button>
           </form>
         </div>
       </div>
+      {forgotOpen && <ForgotPasswordModal onClose={() => setForgotOpen(false)} />}
     </main>
   );
 }
