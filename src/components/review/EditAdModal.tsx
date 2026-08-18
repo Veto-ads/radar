@@ -26,6 +26,7 @@ export default function EditAdModal({
     objective: ad.objective || "",
   });
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -72,6 +73,23 @@ export default function EditAdModal({
       onClose();
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function remove() {
+    if (!confirm("هل تريد حذف هذا الإعلان نهائياً؟")) return;
+    setDeleting(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/ads/${ad.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        setError((await res.json()).error || "تعذر الحذف");
+        return;
+      }
+      onSaved();
+      onClose();
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -147,9 +165,24 @@ export default function EditAdModal({
 
         {error && <p style={{ color: "var(--danger-500)", fontSize: 13 }}>{error}</p>}
 
-        <button disabled={saving} onClick={save} className="btn-primary" style={{ padding: "10px 0" }}>
-          {saving ? "جاري الحفظ..." : "حفظ التعديل"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            disabled={saving || deleting}
+            onClick={save}
+            className="btn-primary"
+            style={{ padding: "10px 0", flex: 1 }}
+          >
+            {saving ? "جاري الحفظ..." : "حفظ التعديل"}
+          </button>
+          <button
+            disabled={saving || deleting}
+            onClick={remove}
+            className="btn-danger"
+            style={{ padding: "10px 16px" }}
+          >
+            {deleting ? "جاري الحذف..." : "حذف الإعلان"}
+          </button>
+        </div>
       </div>
     </Modal>
   );

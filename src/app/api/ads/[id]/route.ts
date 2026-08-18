@@ -30,3 +30,19 @@ export async function PATCH(request: Request, context: RouteContext<"/api/ads/[i
 
   return NextResponse.json({ ok: true });
 }
+
+export async function DELETE(_request: Request, context: RouteContext<"/api/ads/[id]">) {
+  const session = await getSession();
+  if (!session?.permissions.review) {
+    return NextResponse.json({ error: "غير مصرح" }, { status: 403 });
+  }
+  const { id } = await context.params;
+  const db = getDb();
+
+  const existing = db.prepare("SELECT id FROM ads WHERE id = ?").get(id);
+  if (!existing) return NextResponse.json({ error: "غير موجود" }, { status: 404 });
+
+  db.prepare("DELETE FROM ads WHERE id = ?").run(id);
+
+  return NextResponse.json({ ok: true });
+}
