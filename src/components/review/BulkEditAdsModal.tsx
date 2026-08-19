@@ -19,6 +19,7 @@ export default function BulkEditAdsModal({
   const [repeatsPerDay, setRepeatsPerDay] = useState("");
   const [objective, setObjective] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -60,6 +61,23 @@ export default function BulkEditAdsModal({
       onClose();
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function removeAll() {
+    if (!confirm(`هل تريد حذف ${adIds.length} نتيجة نهائياً؟`)) return;
+    setDeleting(true);
+    setError("");
+    try {
+      const results = await Promise.all(adIds.map((id) => fetch(`/api/ads/${id}`, { method: "DELETE" })));
+      if (results.some((r) => !r.ok)) {
+        setError("تعذر حذف بعض النتائج");
+        return;
+      }
+      onSaved();
+      onClose();
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -125,9 +143,24 @@ export default function BulkEditAdsModal({
 
         {error && <p style={{ color: "var(--danger-500)", fontSize: 13 }}>{error}</p>}
 
-        <button disabled={saving} onClick={save} className="btn-primary" style={{ padding: "10px 0" }}>
-          {saving ? "جاري الحفظ..." : `حفظ التعديل على ${adIds.length} نتيجة`}
-        </button>
+        <div className="flex gap-2">
+          <button
+            disabled={saving || deleting}
+            onClick={save}
+            className="btn-primary"
+            style={{ padding: "10px 0", flex: 1 }}
+          >
+            {saving ? "جاري الحفظ..." : `حفظ التعديل على ${adIds.length} نتيجة`}
+          </button>
+          <button
+            disabled={saving || deleting}
+            onClick={removeAll}
+            className="btn-danger"
+            style={{ padding: "10px 16px" }}
+          >
+            {deleting ? "جاري الحذف..." : "حذف الكل"}
+          </button>
+        </div>
       </div>
     </Modal>
   );
