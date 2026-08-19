@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import BoardCombobox from "@/components/BoardCombobox";
 import type { Board } from "@/lib/types";
 
-const MAX_VIDEO_BYTES = 150 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
 
 function formatMB(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} ميجابايت`;
@@ -42,7 +42,7 @@ export default function UploadPage() {
       return;
     }
     if (file.size > MAX_VIDEO_BYTES) {
-      setError(`حجم الفيديو (${formatMB(file.size)}) يتجاوز الحد الأقصى المسموح (150 ميجابايت)`);
+      setError(`حجم الفيديو (${formatMB(file.size)}) يتجاوز الحد الأقصى المسموح (200 ميجابايت)`);
       return;
     }
     setSubmitting(true);
@@ -138,7 +138,7 @@ export default function UploadPage() {
           </div>
 
           <div>
-            <label className="field-label">إضافة فيديو (الحد الأقصى 150 ميجابايت)</label>
+            <label className="field-label">إضافة فيديو (الحد الأقصى 200 ميجابايت)</label>
             <input
               className="field-input"
               type="file"
@@ -146,7 +146,7 @@ export default function UploadPage() {
               onChange={(e) => {
                 const f = e.target.files?.[0] || null;
                 setFile(f);
-                setError(f && f.size > MAX_VIDEO_BYTES ? `حجم الفيديو (${formatMB(f.size)}) يتجاوز الحد الأقصى المسموح (150 ميجابايت)` : "");
+                setError(f && f.size > MAX_VIDEO_BYTES ? `حجم الفيديو (${formatMB(f.size)}) يتجاوز الحد الأقصى المسموح (200 ميجابايت)` : "");
               }}
             />
             {file && (

@@ -7,7 +7,7 @@ import { getSession } from "@/lib/auth";
 import { nextSightingCode } from "@/lib/code";
 import { isBoardAllowedForUser } from "@/lib/boardAssignments";
 
-const MAX_VIDEO_BYTES = 150 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "يرجى إرفاق مقطع فيديو" }, { status: 400 });
   }
   if (file.size > MAX_VIDEO_BYTES) {
-    return NextResponse.json({ error: "حجم الفيديو يتجاوز الحد الأقصى المسموح (150 ميجابايت)" }, { status: 400 });
+    return NextResponse.json({ error: "حجم الفيديو يتجاوز الحد الأقصى المسموح (200 ميجابايت)" }, { status: 400 });
   }
 
   const db = getDb();
