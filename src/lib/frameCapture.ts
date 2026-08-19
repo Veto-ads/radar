@@ -43,6 +43,11 @@ export async function captureVideoFrame(
     absoluteVideoPath,
     "-frames:v",
     "1",
+    // Frames are only ever shown as thumbnails or in a ~640px zoom modal;
+    // capturing at source resolution (often 1080p+) wastes encode time and
+    // produces multi-MB files that are slow to load for no visible benefit.
+    "-vf",
+    "scale='min(640,iw)':-2",
     "-q:v",
     "3",
     "-y",

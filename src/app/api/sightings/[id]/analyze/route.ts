@@ -37,22 +37,29 @@ export async function POST(_request: Request, context: RouteContext<"/api/sighti
 
   db.prepare("DELETE FROM ads WHERE sighting_id = ?").run(id);
 
+  // Frame extraction is the slow part of analysis (ffmpeg decode per ad); running
+  // them concurrently instead of one-by-one cuts wall-clock time roughly by the
+  // number of ads detected in the video.
+  const frameUrls = await Promise.all(
+    ads.map(async (ad) => {
+      try {
+        return await captureVideoFrame(absoluteVideoPath, ad.timestamp_seconds);
+      } catch (err) {
+        console.error("frame capture failed, using placeholder:", err);
+        return createSectorFramePlaceholder(ad.sector, ad.company_name);
+      }
+    })
+  );
+
   const insertAd = db.prepare(
     `INSERT INTO ads (id, sighting_id, company_name, sector, duration_seconds, repeats_per_minute, repeats_per_day, frame_image_url, objective)
      VALUES (?,?,?,?,?,?,?,?,?)`
   );
 
-  const savedAds = [];
-  for (const ad of ads) {
-    let frameUrl: string;
-    try {
-      frameUrl = await captureVideoFrame(absoluteVideoPath, ad.timestamp_seconds);
-    } catch (err) {
-      console.error("frame capture failed, using placeholder:", err);
-      frameUrl = await createSectorFramePlaceholder(ad.sector, ad.company_name);
-    }
+  const savedAds = ads.map((ad, i) => {
     const adId = randomUUID();
     const duration = normalizeAdDuration(ad.duration_seconds);
+    const frameUrl = frameUrls[i];
     insertAd.run(
       adId,
       id,
@@ -64,8 +71,8 @@ export async function POST(_request: Request, context: RouteContext<"/api/sighti
       frameUrl,
       ad.objective
     );
-    savedAds.push({ id: adId, ...ad, duration_seconds: duration, frame_image_url: frameUrl });
-  }
+    return { id: adId, ...ad, duration_seconds: duration, frame_image_url: frameUrl };
+  });
 
   db.prepare("UPDATE sightings SET status = 'analyzed' WHERE id = ?").run(id);
 
