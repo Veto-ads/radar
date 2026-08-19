@@ -14,6 +14,8 @@ const STATUS_LABEL: Record<string, string> = {
   analyzed: "تم التحليل",
 };
 
+const REANALYZE_COOLDOWN_MS = 50_000;
+
 export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void }) {
   const [rows, setRows] = useState<SightingRow[]>([]);
   const [rasids, setRasids] = useState<{ id: string; full_name: string }[]>([]);
@@ -30,6 +32,15 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
   const [analyzeResult, setAnalyzeResult] = useState<GeminiAd[] | null>(null);
   const [error, setError] = useState("");
   const [retryMessage, setRetryMessage] = useState("");
+  const [cooldownUntil, setCooldownUntil] = useState<Record<string, number>>({});
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const hasActiveCooldown = Object.values(cooldownUntil).some((t) => t > now);
+    if (!hasActiveCooldown) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [cooldownUntil, now]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -59,6 +70,7 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
     setAnalyzing(id);
     setError("");
     setRetryMessage("");
+    setCooldownUntil((prev) => ({ ...prev, [id]: Date.now() + REANALYZE_COOLDOWN_MS }));
     const poll = setInterval(() => {
       fetch(`/api/sightings/${id}/analyze-status`)
         .then((r) => r.json())
@@ -161,14 +173,24 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
                 </td>
                 <td style={{ padding: 10 }}>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => analyze(r.id)}
-                      disabled={analyzing === r.id}
-                      className="btn-primary"
-                      style={{ padding: "6px 12px", fontSize: "var(--fs-caption)" }}
-                    >
-                      {analyzing === r.id ? "جاري التحليل..." : "تحليل بالذكاء الاصطناعي"}
-                    </button>
+                    {(() => {
+                      const remainingMs = (cooldownUntil[r.id] || 0) - now;
+                      const inCooldown = remainingMs > 0;
+                      return (
+                        <button
+                          onClick={() => analyze(r.id)}
+                          disabled={analyzing === r.id || inCooldown}
+                          className="btn-primary"
+                          style={{ padding: "6px 12px", fontSize: "var(--fs-caption)" }}
+                        >
+                          {analyzing === r.id
+                            ? "جاري التحليل..."
+                            : inCooldown
+                              ? `أعد المحاولة بعد ${Math.ceil(remainingMs / 1000)} ث`
+                              : "تحليل بالذكاء الاصطناعي"}
+                        </button>
+                      );
+                    })()}
                     <button
                       onClick={() => setEditModal(r)}
                       className="btn-secondary"
