@@ -5,6 +5,7 @@ import type { AdRow } from "@/lib/reviewTypes";
 import { exportTableToExcel } from "@/lib/exportExcel";
 import Modal from "@/components/Modal";
 import EditAdModal from "./EditAdModal";
+import BulkEditAdsModal from "./BulkEditAdsModal";
 
 export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number }) {
   const [rows, setRows] = useState<AdRow[]>([]);
@@ -15,6 +16,8 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
   const [to, setTo] = useState("");
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [editingAd, setEditingAd] = useState<AdRow | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
 
   const load = useCallback(() => {
     const params = new URLSearchParams();
@@ -32,7 +35,24 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
     return () => clearTimeout(t);
   }, [load, refreshKey]);
 
+  useEffect(() => {
+    setSelected(new Set());
+  }, [rows]);
+
   const companies = Array.from(new Set(rows.map((r) => r.company_name))).sort();
+
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setSelected((prev) => (prev.size === rows.length && rows.length > 0 ? new Set() : new Set(rows.map((r) => r.id))));
+  }
 
   function doExport() {
     exportTableToExcel(
@@ -56,6 +76,11 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
       <div className="flex items-center justify-between flex-wrap gap-3" style={{ marginBottom: 16 }}>
         <h2 style={{ font: "var(--text-subtitle)", color: "var(--text-heading)" }}>الإعلانات المحلَّلة</h2>
         <div className="flex gap-2">
+          {selected.size > 0 && (
+            <button onClick={() => setBulkEditOpen(true)} className="btn-primary" style={{ padding: "8px 14px" }}>
+              تعديل الكل ({selected.size})
+            </button>
+          )}
           <button
             onClick={() => setView(view === "table" ? "grid" : "table")}
             className="btn-secondary"
@@ -88,6 +113,13 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-xs)" }}>
             <thead>
               <tr style={{ background: "var(--surface-muted)" }}>
+                <th style={{ padding: 10 }}>
+                  <input
+                    type="checkbox"
+                    checked={selected.size === rows.length && rows.length > 0}
+                    onChange={toggleAll}
+                  />
+                </th>
                 {["كود الرصد", "التاريخ", "اللوحة", "الشركة", "القطاع", "المدة", "التكرار اليومي", "الشارع", "صورة", ""].map(
                   (h) => (
                     <th key={h} style={{ padding: 10, textAlign: "start", color: "var(--text-heading)" }}>
@@ -100,6 +132,9 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} style={{ borderBottom: "1px solid var(--border-default)" }}>
+                  <td style={{ padding: 10 }}>
+                    <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleOne(r.id)} />
+                  </td>
                   <td style={{ padding: 10 }}>{r.sighting_code}</td>
                   <td style={{ padding: 10 }}>{r.captured_date}</td>
                   <td style={{ padding: 10 }}>{r.board_name}</td>
@@ -134,7 +169,7 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={10} style={{ padding: 20, textAlign: "center", color: "var(--text-muted)" }}>
+                  <td colSpan={11} style={{ padding: 20, textAlign: "center", color: "var(--text-muted)" }}>
                     لا توجد إعلانات محلَّلة بعد
                   </td>
                 </tr>
@@ -145,7 +180,13 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {rows.map((r) => (
-            <div key={r.id} className="card" style={{ padding: 12 }}>
+            <div key={r.id} className="card" style={{ padding: 12, position: "relative" }}>
+              <input
+                type="checkbox"
+                checked={selected.has(r.id)}
+                onChange={() => toggleOne(r.id)}
+                style={{ position: "absolute", top: 10, insetInlineStart: 10, zIndex: 1 }}
+              />
               {r.frame_image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -182,6 +223,13 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
       )}
       {editingAd && (
         <EditAdModal ad={editingAd} onClose={() => setEditingAd(null)} onSaved={load} />
+      )}
+      {bulkEditOpen && (
+        <BulkEditAdsModal
+          adIds={Array.from(selected)}
+          onClose={() => setBulkEditOpen(false)}
+          onSaved={load}
+        />
       )}
     </div>
   );
