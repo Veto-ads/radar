@@ -38,6 +38,8 @@ function StreetsCell({ streets }: { streets: string[] }) {
   );
 }
 
+const PAGE_SIZE = 10;
+
 export default function BoardsCatalog() {
   const [boards, setBoards] = useState<Board[]>([]);
   const [modalBoard, setModalBoard] = useState<Board | null | "new">(null);
@@ -45,6 +47,7 @@ export default function BoardsCatalog() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
 
   function load() {
     fetch("/api/boards")
@@ -58,6 +61,12 @@ export default function BoardsCatalog() {
     setSelected(new Set());
   }, [boards]);
 
+  const pageCount = Math.max(1, Math.ceil(boards.length / PAGE_SIZE));
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [pageCount, page]);
+  const pageBoards = boards.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   function toggleOne(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -68,7 +77,14 @@ export default function BoardsCatalog() {
   }
 
   function toggleAll() {
-    setSelected((prev) => (prev.size === boards.length && boards.length > 0 ? new Set() : new Set(boards.map((b) => b.id))));
+    setSelected((prev) => {
+      const pageIds = pageBoards.map((b) => b.id);
+      const allSelected = pageIds.length > 0 && pageIds.every((id) => prev.has(id));
+      const next = new Set(prev);
+      if (allSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
   }
 
   async function remove(id: string) {
@@ -140,7 +156,7 @@ export default function BoardsCatalog() {
                 <th style={{ padding: 10 }}>
                   <input
                     type="checkbox"
-                    checked={selected.size === boards.length && boards.length > 0}
+                    checked={pageBoards.length > 0 && pageBoards.every((b) => selected.has(b.id))}
                     onChange={toggleAll}
                   />
                 </th>
@@ -152,7 +168,7 @@ export default function BoardsCatalog() {
             </tr>
           </thead>
           <tbody>
-            {boards.map((b) => (
+            {pageBoards.map((b) => (
               <tr key={b.id} style={{ borderBottom: "1px solid var(--border-default)" }}>
                 <td style={{ padding: 10 }}>
                   <input type="checkbox" checked={selected.has(b.id)} onChange={() => toggleOne(b.id)} />
@@ -184,6 +200,32 @@ export default function BoardsCatalog() {
           </tbody>
         </table>
       </div>
+
+      {pageCount > 1 && (
+        <div className="flex items-center justify-between" style={{ marginTop: 16 }}>
+          <span style={{ fontSize: "var(--fs-caption)", color: "var(--text-muted)" }}>
+            {boards.length} لوحة — صفحة {page} من {pageCount}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="btn-secondary"
+              style={{ padding: "6px 14px" }}
+            >
+              السابق
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+              disabled={page === pageCount}
+              className="btn-secondary"
+              style={{ padding: "6px 14px" }}
+            >
+              التالي
+            </button>
+          </div>
+        </div>
+      )}
 
       {modalBoard && (
         <BoardModal
