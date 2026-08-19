@@ -18,6 +18,7 @@ export default function AssignBoardsModal({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [q, setQ] = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -63,26 +64,50 @@ export default function AssignBoardsModal({
             : `${selected.size} لوحة مخصصة — الراصد لا يمكنه رصد غيرها.`}
         </p>
 
+        {!loading && (
+          <input
+            className="field-input"
+            placeholder="ابحث عن لوحة بالاسم أو المدينة أو الشارع..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        )}
+
         {loading ? (
           <p style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>جاري التحميل...</p>
         ) : (
           <div style={{ maxHeight: 320, overflowY: "auto" }} className="flex flex-col gap-1">
-            {boards.map((b) => (
-              <label
-                key={b.id}
-                className="flex items-center gap-2"
-                style={{
-                  padding: "8px 10px",
-                  borderRadius: "var(--radius-sm)",
-                  background: selected.has(b.id) ? "var(--green-100)" : "transparent",
-                  fontSize: "var(--fs-xs)",
-                }}
-              >
-                <input type="checkbox" checked={selected.has(b.id)} onChange={() => toggle(b.id)} />
-                <span>{b.name}</span>
-                <span className="chip chip-cyan">{b.type}</span>
-              </label>
-            ))}
+            {(() => {
+              const needle = q.trim().toLowerCase();
+              const filtered = boards.filter((b) => {
+                if (!needle) return true;
+                const streets = ((b.streets as unknown as string[]) || []).join(" ");
+                return `${b.name} ${b.city || ""} ${b.type} ${streets}`.toLowerCase().includes(needle);
+              });
+              if (filtered.length === 0) {
+                return (
+                  <p style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", padding: "8px 10px" }}>
+                    لا توجد لوحات مطابقة
+                  </p>
+                );
+              }
+              return filtered.map((b) => (
+                <label
+                  key={b.id}
+                  className="flex items-center gap-2"
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: "var(--radius-sm)",
+                    background: selected.has(b.id) ? "var(--green-100)" : "transparent",
+                    fontSize: "var(--fs-xs)",
+                  }}
+                >
+                  <input type="checkbox" checked={selected.has(b.id)} onChange={() => toggle(b.id)} />
+                  <span>{b.name}</span>
+                  <span className="chip chip-cyan">{b.type}</span>
+                </label>
+              ));
+            })()}
           </div>
         )}
 
