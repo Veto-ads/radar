@@ -42,6 +42,9 @@ export default function BoardsCatalog() {
   const [boards, setBoards] = useState<Board[]>([]);
   const [modalBoard, setModalBoard] = useState<Board | null | "new">(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState("");
 
   function load() {
     fetch("/api/boards")
@@ -51,10 +54,50 @@ export default function BoardsCatalog() {
 
   useEffect(load, []);
 
+  useEffect(() => {
+    setSelected(new Set());
+  }, [boards]);
+
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setSelected((prev) => (prev.size === boards.length && boards.length > 0 ? new Set() : new Set(boards.map((b) => b.id))));
+  }
+
   async function remove(id: string) {
     if (!confirm("هل تريد حذف هذه اللوحة نهائياً؟")) return;
-    await fetch(`/api/boards/${id}`, { method: "DELETE" });
+    setError("");
+    const res = await fetch(`/api/boards/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      setError((await res.json()).error || "تعذر حذف اللوحة");
+      return;
+    }
     load();
+  }
+
+  async function removeSelected() {
+    if (!confirm(`هل تريد حذف ${selected.size} لوحة نهائياً؟`)) return;
+    setDeleting(true);
+    setError("");
+    try {
+      const results = await Promise.all(
+        Array.from(selected).map((id) => fetch(`/api/boards/${id}`, { method: "DELETE" }))
+      );
+      const failed = results.filter((r) => !r.ok).length;
+      if (failed > 0) {
+        setError(`تعذر حذف ${failed} لوحة لوجود عمليات رصد مرتبطة بها`);
+      }
+      load();
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -62,6 +105,16 @@ export default function BoardsCatalog() {
       <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
         <h2 style={{ font: "var(--text-subtitle)", color: "var(--text-heading)" }}>كتالوج اللوحات والشاشات</h2>
         <div className="flex gap-2">
+          {selected.size > 0 && (
+            <button
+              onClick={removeSelected}
+              disabled={deleting}
+              className="btn-danger"
+              style={{ padding: "8px 16px" }}
+            >
+              {deleting ? "جاري الحذف..." : `حذف المحدد (${selected.size})`}
+            </button>
+          )}
           <button
             onClick={() => exportBoardsToExcel(boards.map((b) => ({ ...b, streets: b.streets as unknown as string[] })))}
             className="btn-secondary"
@@ -78,10 +131,19 @@ export default function BoardsCatalog() {
         </div>
       </div>
 
+      {error && <p style={{ color: "var(--danger-500)", fontSize: 13, marginBottom: 12 }}>{error}</p>}
+
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-xs)" }}>
           <thead>
             <tr style={{ background: "var(--surface-muted)" }}>
+                <th style={{ padding: 10 }}>
+                  <input
+                    type="checkbox"
+                    checked={selected.size === boards.length && boards.length > 0}
+                    onChange={toggleAll}
+                  />
+                </th>
               {["الاسم", "النوع", "التصنيف", "المدينة", "الشوارع", "المدة", "السعر", "الشركة", ""].map((h) => (
                 <th key={h} style={{ padding: 10, textAlign: "start", color: "var(--text-heading)" }}>
                   {h}
@@ -92,6 +154,9 @@ export default function BoardsCatalog() {
           <tbody>
             {boards.map((b) => (
               <tr key={b.id} style={{ borderBottom: "1px solid var(--border-default)" }}>
+                <td style={{ padding: 10 }}>
+                  <input type="checkbox" checked={selected.has(b.id)} onChange={() => toggleOne(b.id)} />
+                </td>
                 <td style={{ padding: 10 }}>{b.name}</td>
                 <td style={{ padding: 10 }}>
                   <span className="chip chip-cyan">{b.type}</span>

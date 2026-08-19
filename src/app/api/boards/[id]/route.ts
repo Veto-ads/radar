@@ -45,6 +45,13 @@ export async function DELETE(_request: Request, context: RouteContext<"/api/boar
   }
   const { id } = await context.params;
   const db = getDb();
-  db.prepare("DELETE FROM boards WHERE id = ?").run(id);
+  try {
+    db.prepare("DELETE FROM boards WHERE id = ?").run(id);
+  } catch {
+    return NextResponse.json(
+      { error: "لا يمكن حذف هذه اللوحة لوجود عمليات رصد مرتبطة بها" },
+      { status: 409 }
+    );
+  }
   return NextResponse.json({ ok: true });
 }
