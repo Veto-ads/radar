@@ -10,6 +10,7 @@ export default function BoardCombobox({
 }) {
   const [boards, setBoards] = useState<Board[]>([]);
   const [query, setQuery] = useState("");
+  const [filterText, setFilterText] = useState("");
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Board | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -30,13 +31,21 @@ export default function BoardCombobox({
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  const filtered = boards.filter((b) => b.name.toLowerCase().includes(query.toLowerCase()));
+  const filtered = boards.filter((b) => b.name.toLowerCase().includes(filterText.toLowerCase()));
 
   function pick(b: Board) {
     setSelected(b);
     setQuery(b.name);
+    setFilterText(b.name);
     setOpen(false);
     onSelect(b);
+  }
+
+  function openList() {
+    setOpen(true);
+    // Reopening on an already-picked board should browse the full list again,
+    // not stay filtered down to just the one board whose name fills the input.
+    if (selected) setFilterText("");
   }
 
   return (
@@ -49,17 +58,19 @@ export default function BoardCombobox({
           placeholder="ابحث عن اللوحة..."
           onChange={(e) => {
             setQuery(e.target.value);
+            setFilterText(e.target.value);
             setOpen(true);
             if (selected && e.target.value !== selected.name) {
               setSelected(null);
               onSelect(null);
             }
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={openList}
+          onClick={openList}
         />
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => (open ? setOpen(false) : openList())}
           style={{
             position: "absolute",
             insetInlineStart: 10,
