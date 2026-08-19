@@ -48,6 +48,7 @@ export default function BoardsCatalog() {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
+  const [q, setQ] = useState("");
 
   function load() {
     fetch("/api/boards")
@@ -61,11 +62,22 @@ export default function BoardsCatalog() {
     setSelected(new Set());
   }, [boards]);
 
-  const pageCount = Math.max(1, Math.ceil(boards.length / PAGE_SIZE));
+  useEffect(() => {
+    setPage(1);
+  }, [q]);
+
+  const filteredBoards = boards.filter((b) => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return true;
+    const streets = ((b.streets as unknown as string[]) || []).join(" ");
+    return `${b.name} ${b.city || ""} ${b.type} ${b.company || ""} ${streets}`.toLowerCase().includes(needle);
+  });
+
+  const pageCount = Math.max(1, Math.ceil(filteredBoards.length / PAGE_SIZE));
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
   }, [pageCount, page]);
-  const pageBoards = boards.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageBoards = filteredBoards.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   function toggleOne(id: string) {
     setSelected((prev) => {
@@ -149,6 +161,14 @@ export default function BoardsCatalog() {
 
       {error && <p style={{ color: "var(--danger-500)", fontSize: 13, marginBottom: 12 }}>{error}</p>}
 
+      <input
+        className="field-input"
+        placeholder="ابحث عن لوحة بالاسم أو المدينة أو النوع أو الشركة أو الشارع..."
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        style={{ marginBottom: 16 }}
+      />
+
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-xs)" }}>
           <thead>
@@ -197,6 +217,13 @@ export default function BoardsCatalog() {
                 </td>
               </tr>
             ))}
+            {pageBoards.length === 0 && (
+              <tr>
+                <td colSpan={9} style={{ padding: 20, textAlign: "center", color: "var(--text-muted)" }}>
+                  لا توجد لوحات مطابقة
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -204,7 +231,7 @@ export default function BoardsCatalog() {
       {pageCount > 1 && (
         <div className="flex items-center justify-between" style={{ marginTop: 16 }}>
           <span style={{ fontSize: "var(--fs-caption)", color: "var(--text-muted)" }}>
-            {boards.length} لوحة — صفحة {page} من {pageCount}
+            {filteredBoards.length} لوحة — صفحة {page} من {pageCount}
           </span>
           <div className="flex gap-2">
             <button

@@ -101,15 +101,29 @@ export default function UploadPage() {
             </div>
           </div>
 
-          {board?.location_url && (
-            <a
-              href={board.location_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: "var(--danger-500)", fontSize: "var(--fs-xs)" }}
-            >
-              📍 اذهب للموقع
-            </a>
+          {(board?.location_url || board?.image_url) && (
+            <div className="flex gap-4">
+              {board.location_url && (
+                <a
+                  href={board.location_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "var(--danger-500)", fontSize: "var(--fs-xs)" }}
+                >
+                  📍 اذهب للموقع
+                </a>
+              )}
+              {board.image_url && (
+                <a
+                  href={board.image_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "var(--veto-cyan)", fontSize: "var(--fs-xs)" }}
+                >
+                  🖼️ صورة اللوحة
+                </a>
+              )}
+            </div>
           )}
 
           <div className="grid grid-cols-2 gap-4">
