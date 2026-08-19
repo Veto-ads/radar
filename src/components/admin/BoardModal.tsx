@@ -112,6 +112,9 @@ export default function BoardModal({
           <div>
             <label className="field-label">النوع</label>
             <select className="field-input" value={form.type} onChange={(e) => set("type", e.target.value)}>
+              {form.type && !types.some((t) => t.name === form.type) && (
+                <option value={form.type}>{form.type}</option>
+              )}
               {types.map((t) => (
                 <option key={t.id} value={t.name}>
                   {t.name}
@@ -122,6 +125,9 @@ export default function BoardModal({
           <div>
             <label className="field-label">التصنيف</label>
             <select className="field-input" value={form.category} onChange={(e) => set("category", e.target.value)}>
+              {form.category && !categories.some((c) => c.name === form.category) && (
+                <option value={form.category}>{form.category}</option>
+              )}
               {categories.map((c) => (
                 <option key={c.id} value={c.name}>
                   {c.name}
