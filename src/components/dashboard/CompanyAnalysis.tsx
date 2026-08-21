@@ -4,17 +4,9 @@ import { useEffect, useState } from "react";
 import SearchSelect from "@/components/SearchSelect";
 import ChartCanvas from "./ChartCanvas";
 import RankedShareList from "./RankedShareList";
+import RecentAdsArchive, { type ArchiveAdItem } from "./RecentAdsArchive";
 import { CHART_PALETTE } from "@/lib/chartColors";
 import type { ChartConfiguration } from "chart.js/auto";
-
-type ArchiveAd = {
-  id: string;
-  frame_image_url: string | null;
-  objective: string | null;
-  captured_date: string;
-  board_name: string;
-  board_type: string;
-};
 
 type CompanyStats = {
   summary: { ads_count: number; avg_duration: number | null; last_ad_date: string | null };
@@ -25,7 +17,8 @@ type CompanyStats = {
   mediaDist: { type: string; count: number }[];
   boardsTrend: { month: string; count: number }[];
   streetsDist: { street: string; count: number }[];
-  monthlyArchive: Record<string, ArchiveAd[]>;
+  monthlyArchive: Record<string, ArchiveAdItem[]>;
+  recentAds: ArchiveAdItem[];
 };
 
 export default function CompanyAnalysis() {
@@ -34,7 +27,6 @@ export default function CompanyAnalysis() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [stats, setStats] = useState<CompanyStats | null>(null);
-  const [openMonth, setOpenMonth] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/companies")
@@ -125,39 +117,7 @@ export default function CompanyAnalysis() {
             <RankedShareList items={stats.streetsDist.map((s) => ({ label: s.street, count: s.count }))} />
           </div>
 
-          <div>
-            <h4 style={{ font: "var(--text-label)", marginBottom: 8 }}>الأرشيف الشهري</h4>
-            <div className="flex flex-wrap gap-2" style={{ marginBottom: 12 }}>
-              {Object.keys(stats.monthlyArchive).map((month) => (
-                <button
-                  key={month}
-                  onClick={() => setOpenMonth(month === openMonth ? null : month)}
-                  className="chip"
-                  style={{
-                    background: openMonth === month ? "var(--veto-green)" : "var(--surface-muted)",
-                    color: openMonth === month ? "white" : "var(--text-heading)",
-                    padding: "6px 14px",
-                  }}
-                >
-                  {month}
-                </button>
-              ))}
-            </div>
-            {openMonth && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {stats.monthlyArchive[openMonth].map((ad) => (
-                  <div key={ad.id} className="card" style={{ padding: 10 }}>
-                    {ad.frame_image_url && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={ad.frame_image_url} alt="" style={{ width: "100%", height: 80, objectFit: "cover", borderRadius: 6 }} />
-                    )}
-                    <p style={{ fontSize: "var(--fs-caption)", marginTop: 6 }}>{ad.board_name}</p>
-                    <p style={{ fontSize: "var(--fs-caption)", color: "var(--text-muted)" }}>{ad.captured_date}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <RecentAdsArchive recentAds={stats.recentAds} monthlyArchive={stats.monthlyArchive} showCompany={false} />
         </div>
       )}
     </div>

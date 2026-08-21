@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import SearchSelect from "@/components/SearchSelect";
 import RankedShareList from "./RankedShareList";
+import RecentAdsArchive, { type ArchiveAdItem } from "./RecentAdsArchive";
 
 type BoardTypeStats = {
   topSectors: { sector: string; count: number }[];
@@ -11,7 +12,8 @@ type BoardTypeStats = {
   avg_duration: number;
   boards_count: number;
   screens_count: number;
-  lastMonthAds: { id: string; frame_image_url: string | null; company_name: string; captured_date: string; board_name: string }[];
+  lastMonthAds: ArchiveAdItem[];
+  monthlyArchive: Record<string, ArchiveAdItem[]>;
 };
 
 export default function BoardTypeAnalysis() {
@@ -86,29 +88,11 @@ export default function BoardTypeAnalysis() {
             </div>
           )}
 
-          <div>
-            <h4 style={{ font: "var(--text-label)", marginBottom: 8 }}>صور الإعلانات المرصودة آخر شهر</h4>
-            {stats.lastMonthAds.length === 0 ? (
-              <p style={{ color: "var(--text-muted)", fontSize: "var(--fs-xs)" }}>لا توجد صور خلال آخر شهر</p>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-                {stats.lastMonthAds.map((ad) => (
-                  <div key={ad.id} className="card" style={{ padding: 8 }}>
-                    {ad.frame_image_url && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={ad.frame_image_url}
-                        alt={ad.company_name}
-                        style={{ width: "100%", height: 70, objectFit: "cover", borderRadius: 4 }}
-                      />
-                    )}
-                    <p style={{ fontSize: "var(--fs-caption)", marginTop: 4 }}>{ad.company_name}</p>
-                    <p style={{ fontSize: "var(--fs-caption)", color: "var(--text-muted)" }}>{ad.captured_date}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <RecentAdsArchive
+            recentAds={stats.lastMonthAds.slice(0, 12)}
+            monthlyArchive={stats.monthlyArchive}
+            showCompany
+          />
         </div>
       )}
     </div>

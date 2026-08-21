@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import SearchSelect from "@/components/SearchSelect";
 import RankedShareList from "./RankedShareList";
+import RecentAdsArchive, { type ArchiveAdItem } from "./RecentAdsArchive";
 
 type SectorStats = {
   summary: { ads_count: number; companies: number; avg_duration: number | null; last_ad_date: string | null };
@@ -11,6 +12,8 @@ type SectorStats = {
   topCompanies: { company: string; count: number }[];
   streetsDist: { street: string; count: number }[];
   period_spending: number;
+  monthlyArchive: Record<string, ArchiveAdItem[]>;
+  recentAds: ArchiveAdItem[];
 };
 
 export default function SectorAnalysis() {
@@ -89,6 +92,8 @@ export default function SectorAnalysis() {
             <h4 style={{ font: "var(--text-label)", marginBottom: 8 }}>أكثر الشوارع والطرق تكراراً</h4>
             <RankedShareList items={stats.streetsDist.map((s) => ({ label: s.street, count: s.count }))} />
           </div>
+
+          <RecentAdsArchive recentAds={stats.recentAds} monthlyArchive={stats.monthlyArchive} showCompany />
         </div>
       )}
     </div>

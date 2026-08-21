@@ -12,6 +12,7 @@ export default function SearchSelect({
   onSelect: (value: string) => void;
 }) {
   const [query, setQuery] = useState("");
+  const [filterText, setFilterText] = useState("");
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -23,7 +24,14 @@ export default function SearchSelect({
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  const filtered = options.filter((o) => o.toLowerCase().includes(query.toLowerCase()));
+  const filtered = options.filter((o) => o.toLowerCase().includes(filterText.toLowerCase()));
+
+  function openList() {
+    setOpen(true);
+    // Reopening on an already-picked value should browse the full list again,
+    // not stay filtered down to just the one option whose text fills the input.
+    if (options.includes(query)) setFilterText("");
+  }
 
   return (
     <div ref={rootRef} style={{ position: "relative" }}>
@@ -33,9 +41,11 @@ export default function SearchSelect({
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);
+          setFilterText(e.target.value);
           setOpen(true);
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={openList}
+        onClick={openList}
       />
       {open && filtered.length > 0 && (
         <div
@@ -48,6 +58,7 @@ export default function SearchSelect({
               key={o}
               onClick={() => {
                 setQuery(o);
+                setFilterText(o);
                 setOpen(false);
                 onSelect(o);
               }}

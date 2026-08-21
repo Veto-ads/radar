@@ -15,6 +15,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const REANALYZE_COOLDOWN_MS = 50_000;
+const PAGE_SIZE = 10;
 
 export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void }) {
   const [rows, setRows] = useState<SightingRow[]>([]);
@@ -34,6 +35,7 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
   const [retryMessage, setRetryMessage] = useState("");
   const [cooldownUntil, setCooldownUntil] = useState<Record<string, number>>({});
   const [now, setNow] = useState(() => Date.now());
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const hasActiveCooldown = Object.values(cooldownUntil).some((t) => t > now);
@@ -65,6 +67,16 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
     const t = setTimeout(load, 300);
     return () => clearTimeout(t);
   }, [load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [q, from, to, rasidId]);
+
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [pageCount, page]);
+  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   async function analyze(id: string) {
     setAnalyzing(id);
@@ -147,7 +159,7 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {pageRows.map((r) => (
               <tr key={r.id} style={{ borderBottom: "1px solid var(--border-default)" }}>
                 <td style={{ padding: 10 }}>{r.code}</td>
                 <td style={{ padding: 10 }}>
@@ -216,7 +228,7 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
             ))}
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ padding: 20, textAlign: "center", color: "var(--text-muted)" }}>
+                <td colSpan={8} style={{ padding: 20, textAlign: "center", color: "var(--text-muted)" }}>
                   لا توجد طلبات
                 </td>
               </tr>
@@ -224,6 +236,32 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
           </tbody>
         </table>
       </div>
+
+      {pageCount > 1 && (
+        <div className="flex items-center justify-between" style={{ marginTop: 16 }}>
+          <span style={{ fontSize: "var(--fs-caption)", color: "var(--text-muted)" }}>
+            {rows.length} طلب — صفحة {page} من {pageCount}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="btn-secondary"
+              style={{ padding: "6px 14px" }}
+            >
+              السابق
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+              disabled={page === pageCount}
+              className="btn-secondary"
+              style={{ padding: "6px 14px" }}
+            >
+              التالي
+            </button>
+          </div>
+        </div>
+      )}
 
       {videoModal && <VideoModal src={videoModal} onClose={() => setVideoModal(null)} />}
       {editModal && (

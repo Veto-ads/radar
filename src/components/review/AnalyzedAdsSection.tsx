@@ -7,28 +7,33 @@ import Modal from "@/components/Modal";
 import EditAdModal from "./EditAdModal";
 import BulkEditAdsModal from "./BulkEditAdsModal";
 
+const PAGE_SIZE = 10;
+
 export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number }) {
   const [rows, setRows] = useState<AdRow[]>([]);
   const [view, setView] = useState<"table" | "grid">("table");
   const [q, setQ] = useState("");
   const [company, setCompany] = useState("");
+  const [sector, setSector] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [editingAd, setEditingAd] = useState<AdRow | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [page, setPage] = useState(1);
 
   const load = useCallback(() => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (company) params.set("company", company);
+    if (sector) params.set("sector", sector);
     if (from) params.set("from", from);
     if (to) params.set("to", to);
     fetch(`/api/ads?${params.toString()}`)
       .then((r) => r.json())
       .then((d) => setRows(d.ads || []));
-  }, [q, company, from, to]);
+  }, [q, company, sector, from, to]);
 
   useEffect(() => {
     const t = setTimeout(load, 300);
@@ -39,7 +44,18 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
     setSelected(new Set());
   }, [rows]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [q, company, sector, from, to]);
+
   const companies = Array.from(new Set(rows.map((r) => r.company_name))).sort();
+  const sectors = Array.from(new Set(rows.map((r) => r.sector))).sort();
+
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [pageCount, page]);
+  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   function toggleOne(id: string) {
     setSelected((prev) => {
@@ -51,7 +67,14 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
   }
 
   function toggleAll() {
-    setSelected((prev) => (prev.size === rows.length && rows.length > 0 ? new Set() : new Set(rows.map((r) => r.id))));
+    setSelected((prev) => {
+      const pageIds = pageRows.map((r) => r.id);
+      const allSelected = pageIds.length > 0 && pageIds.every((id) => prev.has(id));
+      const next = new Set(prev);
+      if (allSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
   }
 
   function doExport() {
@@ -94,13 +117,21 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3" style={{ marginBottom: 16 }}>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3" style={{ marginBottom: 16 }}>
         <input className="field-input" placeholder="بحث..." value={q} onChange={(e) => setQ(e.target.value)} />
         <select className="field-input" value={company} onChange={(e) => setCompany(e.target.value)}>
           <option value="">كل الشركات</option>
           {companies.map((c) => (
             <option key={c} value={c}>
               {c}
+            </option>
+          ))}
+        </select>
+        <select className="field-input" value={sector} onChange={(e) => setSector(e.target.value)}>
+          <option value="">كل القطاعات</option>
+          {sectors.map((s) => (
+            <option key={s} value={s}>
+              {s}
             </option>
           ))}
         </select>
@@ -116,7 +147,7 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
                 <th style={{ padding: 10 }}>
                   <input
                     type="checkbox"
-                    checked={selected.size === rows.length && rows.length > 0}
+                    checked={pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))}
                     onChange={toggleAll}
                   />
                 </th>
@@ -130,7 +161,7 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {pageRows.map((r) => (
                 <tr key={r.id} style={{ borderBottom: "1px solid var(--border-default)" }}>
                   <td style={{ padding: 10 }}>
                     <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleOne(r.id)} />
@@ -152,7 +183,7 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
                         src={r.frame_image_url}
                         alt={r.company_name}
                         onClick={() => setZoomImage(r.frame_image_url)}
-                        style={{ width: 48, height: 32, objectFit: "cover", borderRadius: 4, cursor: "pointer" }}
+                        style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 4, cursor: "pointer" }}
                       />
                     )}
                   </td>
@@ -179,7 +210,7 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {rows.map((r) => (
+          {pageRows.map((r) => (
             <div key={r.id} className="card" style={{ padding: 12, position: "relative" }}>
               <input
                 type="checkbox"
@@ -193,7 +224,7 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
                   src={r.frame_image_url}
                   alt={r.company_name}
                   onClick={() => setZoomImage(r.frame_image_url)}
-                  style={{ width: "100%", height: 100, objectFit: "cover", borderRadius: "var(--radius-sm)", cursor: "pointer" }}
+                  style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: "var(--radius-sm)", cursor: "pointer" }}
                 />
               )}
               <p style={{ fontWeight: 600, marginTop: 8, fontSize: "var(--fs-xs)" }}>{r.company_name}</p>
@@ -212,6 +243,32 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {pageCount > 1 && (
+        <div className="flex items-center justify-between" style={{ marginTop: 16 }}>
+          <span style={{ fontSize: "var(--fs-caption)", color: "var(--text-muted)" }}>
+            {rows.length} نتيجة — صفحة {page} من {pageCount}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="btn-secondary"
+              style={{ padding: "6px 14px" }}
+            >
+              السابق
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+              disabled={page === pageCount}
+              className="btn-secondary"
+              style={{ padding: "6px 14px" }}
+            >
+              التالي
+            </button>
+          </div>
         </div>
       )}
 

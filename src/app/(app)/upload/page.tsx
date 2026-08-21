@@ -132,8 +132,12 @@ export default function UploadPage() {
               <input className="field-input" disabled value={now.toISOString().slice(0, 10)} />
             </div>
             <div>
-              <label className="field-label">وقت التوثيق</label>
-              <input className="field-input" disabled value={now.toTimeString().slice(0, 5)} />
+              <label className="field-label">الشوارع</label>
+              <input
+                className="field-input"
+                disabled
+                value={board ? (board.streets as unknown as string[])?.join("، ") || "—" : ""}
+              />
             </div>
           </div>
 

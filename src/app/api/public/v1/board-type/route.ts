@@ -19,6 +19,11 @@ export async function GET(request: Request) {
   for (const ad of stats.lastMonthAds as { frame_image_url: string | null }[]) {
     if (ad.frame_image_url) ad.frame_image_url = `${origin}${ad.frame_image_url}`;
   }
+  for (const ads of Object.values(stats.monthlyArchive)) {
+    for (const ad of ads as { frame_image_url: string | null }[]) {
+      if (ad.frame_image_url) ad.frame_image_url = `${origin}${ad.frame_image_url}`;
+    }
+  }
 
   return corsJson(stats);
 }

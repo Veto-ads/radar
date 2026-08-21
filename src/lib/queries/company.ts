@@ -113,5 +113,6 @@ export function getCompanyStats(name: string, from: string, to: string) {
     boardsTrend,
     streetsDist,
     monthlyArchive,
+    recentAds: archiveRows.slice(0, 12),
   };
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Modal from "@/components/Modal";
 import type { GeminiAd } from "@/lib/gemini";
 
@@ -10,6 +11,8 @@ export default function AnalyzeResultModal({
   ads: (GeminiAd & { frame_image_url?: string })[];
   onClose: () => void;
 }) {
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
+
   return (
     <Modal title="نتيجة التحليل بالذكاء الاصطناعي" onClose={onClose} width={760}>
       <div className="flex flex-col gap-4">
@@ -29,7 +32,8 @@ export default function AnalyzeResultModal({
               <img
                 src={ad.frame_image_url}
                 alt={ad.company_name}
-                style={{ width: 120, height: 68, objectFit: "cover", borderRadius: "var(--radius-sm)" }}
+                onClick={() => setZoomImage(ad.frame_image_url!)}
+                style={{ width: 120, aspectRatio: "1", objectFit: "cover", borderRadius: "var(--radius-sm)", cursor: "pointer" }}
               />
             )}
             <div className="flex flex-col gap-1">
@@ -47,6 +51,12 @@ export default function AnalyzeResultModal({
           </div>
         ))}
       </div>
+      {zoomImage && (
+        <Modal title="صورة الإعلان" onClose={() => setZoomImage(null)} width={640}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={zoomImage} alt="" style={{ width: "100%", borderRadius: "var(--radius-md)" }} />
+        </Modal>
+      )}
     </Modal>
   );
 }

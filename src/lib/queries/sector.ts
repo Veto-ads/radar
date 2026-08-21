@@ -70,5 +70,39 @@ export function getSectorStats(name: string, from: string, to: string) {
     0
   );
 
-  return { summary, monthsDist, mediaDist, topCompanies, streetsDist, period_spending: spendingTotal };
+  const archiveRows = db
+    .prepare(
+      `SELECT strftime('%Y-%m', s.captured_date) as month, a.id, a.frame_image_url, a.objective,
+              a.company_name, s.captured_date, b.name as board_name, b.type as board_type
+       FROM ads a JOIN sightings s ON s.id=a.sighting_id JOIN boards b ON b.id=s.board_id
+       WHERE s.status='analyzed' AND a.sector=@name AND s.captured_date BETWEEN @from AND @to
+       ORDER BY s.captured_date DESC`
+    )
+    .all(params) as {
+      month: string;
+      id: string;
+      frame_image_url: string | null;
+      objective: string | null;
+      company_name: string;
+      captured_date: string;
+      board_name: string;
+      board_type: string;
+    }[];
+
+  const monthlyArchive: Record<string, typeof archiveRows> = {};
+  for (const row of archiveRows) {
+    if (!monthlyArchive[row.month]) monthlyArchive[row.month] = [];
+    monthlyArchive[row.month].push(row);
+  }
+
+  return {
+    summary,
+    monthsDist,
+    mediaDist,
+    topCompanies,
+    streetsDist,
+    period_spending: spendingTotal,
+    monthlyArchive,
+    recentAds: archiveRows.slice(0, 12),
+  };
 }

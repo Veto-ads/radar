@@ -64,6 +64,30 @@ export function getBoardTypeStats(type: string, sector: string | null) {
     )
     .all({ ...params, from });
 
+  const archiveRows = db
+    .prepare(
+      `SELECT strftime('%Y-%m', s.captured_date) as month, a.id, a.frame_image_url, a.objective,
+              a.company_name, s.captured_date, b.name as board_name
+       FROM ads a JOIN sightings s ON s.id=a.sighting_id JOIN boards b ON b.id=s.board_id
+       WHERE s.status='analyzed' AND b.type=@type ${durationClause}
+       ORDER BY s.captured_date DESC`
+    )
+    .all(params) as {
+      month: string;
+      id: string;
+      frame_image_url: string | null;
+      objective: string | null;
+      company_name: string;
+      captured_date: string;
+      board_name: string;
+    }[];
+
+  const monthlyArchive: Record<string, typeof archiveRows> = {};
+  for (const row of archiveRows) {
+    if (!monthlyArchive[row.month]) monthlyArchive[row.month] = [];
+    monthlyArchive[row.month].push(row);
+  }
+
   return {
     topSectors,
     topCompaniesOverall,
@@ -72,5 +96,6 @@ export function getBoardTypeStats(type: string, sector: string | null) {
     boards_count: boardsRow.boards_count,
     screens_count: boardsRow.screens_count,
     lastMonthAds,
+    monthlyArchive,
   };
 }
