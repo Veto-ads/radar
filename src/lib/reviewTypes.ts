@@ -7,7 +7,8 @@ export type SightingRow = {
   board_city: string | null;
   rasid_id: string;
   rasid_name: string;
-  video_url: string;
+  video_url: string | null;
+  image_url: string | null;
   video_size_bytes: number | null;
   captured_date: string;
   captured_time: string;

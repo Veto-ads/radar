@@ -57,7 +57,9 @@ export type Sighting = {
   code: string;
   board_id: string;
   rasid_id: string;
-  video_url: string;
+  video_url: string | null;
+  image_url: string | null;
+  video_size_bytes: number | null;
   captured_date: string;
   captured_time: string;
   status: "pending" | "analyzed" | "deleted";

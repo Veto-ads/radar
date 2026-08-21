@@ -8,6 +8,7 @@ import { nextSightingCode } from "@/lib/code";
 import { isBoardAllowedForUser } from "@/lib/boardAssignments";
 
 const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -74,16 +75,22 @@ export async function POST(request: Request) {
 
   const form = await request.formData();
   const boardId = form.get("board_id");
-  const file = form.get("video");
+  const videoFile = form.get("video");
+  const imageFile = form.get("image");
 
   if (typeof boardId !== "string" || !boardId) {
     return NextResponse.json({ error: "يرجى اختيار اللوحة" }, { status: 400 });
   }
-  if (!(file instanceof File) || file.size === 0) {
-    return NextResponse.json({ error: "يرجى إرفاق مقطع فيديو" }, { status: 400 });
+  const hasVideo = videoFile instanceof File && videoFile.size > 0;
+  const hasImage = imageFile instanceof File && imageFile.size > 0;
+  if (!hasVideo && !hasImage) {
+    return NextResponse.json({ error: "يرجى إرفاق مقطع فيديو أو صورة" }, { status: 400 });
   }
-  if (file.size > MAX_VIDEO_BYTES) {
+  if (hasVideo && (videoFile as File).size > MAX_VIDEO_BYTES) {
     return NextResponse.json({ error: "حجم الفيديو يتجاوز الحد الأقصى المسموح (200 ميجابايت)" }, { status: 400 });
+  }
+  if (hasImage && (imageFile as File).size > MAX_IMAGE_BYTES) {
+    return NextResponse.json({ error: "حجم الصورة يتجاوز الحد الأقصى المسموح (20 ميجابايت)" }, { status: 400 });
   }
 
   const db = getDb();
@@ -95,12 +102,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "هذه اللوحة غير مخصصة لك" }, { status: 403 });
   }
 
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", "videos");
-  await mkdir(uploadsDir, { recursive: true });
-  const ext = path.extname(file.name) || ".mp4";
-  const fileName = `${randomUUID()}${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(uploadsDir, fileName), buffer);
+  let videoUrl: string | null = null;
+  let videoSize: number | null = null;
+  if (hasVideo) {
+    const file = videoFile as File;
+    const uploadsDir = path.join(process.cwd(), "public", "uploads", "videos");
+    await mkdir(uploadsDir, { recursive: true });
+    const ext = path.extname(file.name) || ".mp4";
+    const fileName = `${randomUUID()}${ext}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(path.join(uploadsDir, fileName), buffer);
+    videoUrl = `/uploads/videos/${fileName}`;
+    videoSize = file.size;
+  }
+
+  let imageUrl: string | null = null;
+  if (hasImage) {
+    const file = imageFile as File;
+    const uploadsDir = path.join(process.cwd(), "public", "uploads", "sighting-images");
+    await mkdir(uploadsDir, { recursive: true });
+    const ext = path.extname(file.name) || ".jpg";
+    const fileName = `${randomUUID()}${ext}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(path.join(uploadsDir, fileName), buffer);
+    imageUrl = `/uploads/sighting-images/${fileName}`;
+  }
 
   const now = new Date();
   const capturedDate = now.toISOString().slice(0, 10);
@@ -109,9 +135,9 @@ export async function POST(request: Request) {
   const code = nextSightingCode();
 
   db.prepare(
-    `INSERT INTO sightings (id, code, board_id, rasid_id, video_url, video_size_bytes, captured_date, captured_time, status)
-     VALUES (?,?,?,?,?,?,?,?, 'pending')`
-  ).run(id, code, boardId, session.id, `/uploads/videos/${fileName}`, file.size, capturedDate, capturedTime);
+    `INSERT INTO sightings (id, code, board_id, rasid_id, video_url, image_url, video_size_bytes, captured_date, captured_time, status)
+     VALUES (?,?,?,?,?,?,?,?,?, 'pending')`
+  ).run(id, code, boardId, session.id, videoUrl, imageUrl, videoSize, capturedDate, capturedTime);
 
   return NextResponse.json({ id, code }, { status: 201 });
 }

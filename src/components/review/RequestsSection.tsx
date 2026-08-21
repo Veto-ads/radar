@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import type { SightingRow } from "@/lib/reviewTypes";
 import type { GeminiAd } from "@/lib/gemini";
+import Modal from "@/components/Modal";
 import VideoModal from "./VideoModal";
 import EditSightingModal from "./EditSightingModal";
 import AnalyzeResultModal from "./AnalyzeResultModal";
@@ -26,6 +27,7 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
   const [to, setTo] = useState("");
   const [rasidId, setRasidId] = useState("");
   const [videoModal, setVideoModal] = useState<string | null>(null);
+  const [imageModal, setImageModal] = useState<string | null>(null);
   const [editModal, setEditModal] = useState<SightingRow | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -151,7 +153,7 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-xs)" }}>
           <thead>
             <tr style={{ background: "var(--surface-muted)" }}>
-              {["كود الرصد", "اللوحة", "الراصد", "التاريخ/الوقت", "الفيديو", "حجم الفيديو", "الحالة", "إجراءات"].map((h) => (
+              {["كود الرصد", "اللوحة", "الراصد", "التاريخ/الوقت", "المرفق", "حجم الملف", "الحالة", "إجراءات"].map((h) => (
                 <th key={h} style={{ padding: 10, textAlign: "start", color: "var(--text-heading)" }}>
                   {h}
                 </th>
@@ -171,9 +173,17 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
                   {r.captured_date} {r.captured_time}
                 </td>
                 <td style={{ padding: 10 }}>
-                  <button onClick={() => setVideoModal(r.video_url)} style={{ color: "var(--veto-cyan)" }}>
-                    ▶ تشغيل
-                  </button>
+                  {r.video_url ? (
+                    <button onClick={() => setVideoModal(r.video_url)} style={{ color: "var(--veto-cyan)" }}>
+                      ▶ تشغيل
+                    </button>
+                  ) : r.image_url ? (
+                    <button onClick={() => setImageModal(r.image_url)} style={{ color: "var(--veto-cyan)" }}>
+                      🖼️ عرض الصورة
+                    </button>
+                  ) : (
+                    "—"
+                  )}
                 </td>
                 <td style={{ padding: 10, color: "var(--text-muted)" }}>
                   {r.video_size_bytes ? `${(r.video_size_bytes / (1024 * 1024)).toFixed(1)} MB` : "—"}
@@ -264,6 +274,11 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
       )}
 
       {videoModal && <VideoModal src={videoModal} onClose={() => setVideoModal(null)} />}
+      {imageModal && (
+        <Modal title="صورة الرصد" onClose={() => setImageModal(null)} width={720}>
+          <img src={imageModal} alt="صورة الرصد" style={{ width: "100%", borderRadius: "var(--radius-md)" }} />
+        </Modal>
+      )}
       {editModal && (
         <EditSightingModal sighting={editModal} onClose={() => setEditModal(null)} onSaved={load} />
       )}

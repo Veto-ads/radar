@@ -45,8 +45,42 @@ export type GeminiAd = {
   repeats_per_minute: number;
   repeats_per_day: number;
   objective: string;
-  timestamp_seconds: number;
+  timestamp_seconds?: number;
 };
+
+// Sightings can be submitted as a single photo instead of a video (e.g. when
+// recording isn't practical). There's no timeline to pick a capture moment
+// from, so timestamp_seconds is dropped, and the wording is adapted for a
+// still image rather than a clip.
+const imageResponseSchema: Schema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    ads: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          company_name: { type: SchemaType.STRING, description: "اسم الشركة المعلنة" },
+          sector: { type: SchemaType.STRING, description: "قطاع الشركة" },
+          duration_seconds: {
+            type: SchemaType.NUMBER,
+            description: "المدة التقديرية لظهور الإعلان الواحد بالثواني وفق المعتاد لهذا النوع من اللوحات",
+          },
+          repeats_per_minute: { type: SchemaType.NUMBER, description: "عدد مرات التكرار التقديرية في الدقيقة" },
+          repeats_per_day: { type: SchemaType.NUMBER, description: "عدد مرات التكرار التقديرية في اليوم" },
+          objective: { type: SchemaType.STRING, description: "هدف الإعلان بجملة واحدة" },
+        },
+        required: ["company_name", "sector", "duration_seconds", "repeats_per_minute", "repeats_per_day", "objective"],
+      },
+    },
+  },
+  required: ["ads"],
+};
+
+const IMAGE_PROMPT =
+  "حلل الصورة المرفقة للوحة أو شاشة إعلانية بدون فيديو، واذكر لكل شركة معلنة ظاهرة في الصورة: اسم الشركة، وقطاعها، " +
+  "والمدة التقديرية لظهور الإعلان الواحد بالثواني وفق المعتاد لهذا النوع من اللوحات، وعدد مرات التكرار التقديرية " +
+  "في الدقيقة وفي اليوم، وهدف الإعلان بجملة واحدة.";
 
 function mimeTypeFromExt(filePath: string): string {
   const ext = filePath.split(".").pop()?.toLowerCase();
@@ -58,6 +92,18 @@ function mimeTypeFromExt(filePath: string): string {
     mkv: "video/x-matroska",
   };
   return map[ext || ""] || "video/mp4";
+}
+
+function mimeTypeFromImageExt(filePath: string): string {
+  const ext = filePath.split(".").pop()?.toLowerCase();
+  const map: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    heic: "image/heic",
+  };
+  return map[ext || ""] || "image/jpeg";
 }
 
 export type RetryStatus = { attempt: number; maxAttempts: number; message: string };
@@ -112,6 +158,35 @@ export async function analyzeSightingVideo(
 
   try {
     const result = await generateContentWithRetry(model, [videoPart, { text: prompt }], statusKey);
+    const text = result.response.text();
+    const parsed = JSON.parse(text) as { ads: GeminiAd[] };
+    return dedupeAdsByCompany(parsed.ads || []);
+  } finally {
+    if (statusKey) retryStatusByKey.delete(statusKey);
+  }
+}
+
+export async function analyzeSightingImage(absoluteImagePath: string, statusKey?: string): Promise<GeminiAd[]> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY غير مضبوط في متغيرات البيئة");
+  }
+
+  const mimeType = mimeTypeFromImageExt(absoluteImagePath);
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({
+    model: "gemini-flash-latest",
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: imageResponseSchema,
+    },
+  });
+
+  const buffer = await readFile(absoluteImagePath);
+  const imagePart = { inlineData: { data: buffer.toString("base64"), mimeType } };
+
+  try {
+    const result = await generateContentWithRetry(model, [imagePart, { text: IMAGE_PROMPT }], statusKey);
     const text = result.response.text();
     const parsed = JSON.parse(text) as { ads: GeminiAd[] };
     return dedupeAdsByCompany(parsed.ads || []);

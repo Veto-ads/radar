@@ -72,7 +72,8 @@ function init(db: Database.Database) {
       code TEXT UNIQUE NOT NULL,
       board_id TEXT NOT NULL REFERENCES boards(id),
       rasid_id TEXT NOT NULL REFERENCES users(id),
-      video_url TEXT NOT NULL,
+      video_url TEXT,
+      image_url TEXT,
       captured_date TEXT NOT NULL,
       captured_time TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
@@ -129,9 +130,44 @@ function init(db: Database.Database) {
     db.exec("ALTER TABLE users ADD COLUMN failed_attempts INTEGER NOT NULL DEFAULT 0");
   }
 
-  const sightingColumns = db.prepare("PRAGMA table_info(sightings)").all() as { name: string }[];
+  const sightingColumns = db.prepare("PRAGMA table_info(sightings)").all() as {
+    name: string;
+    notnull: number;
+  }[];
   if (!sightingColumns.some((c) => c.name === "video_size_bytes")) {
     db.exec("ALTER TABLE sightings ADD COLUMN video_size_bytes INTEGER");
+  }
+  if (!sightingColumns.some((c) => c.name === "image_url")) {
+    db.exec("ALTER TABLE sightings ADD COLUMN image_url TEXT");
+  }
+  // Sightings originally required a video; a sighting can now carry an image
+  // instead, so video_url must become nullable. SQLite can't drop a NOT NULL
+  // constraint in place, so rebuild the table when an old NOT NULL schema is found.
+  if (sightingColumns.find((c) => c.name === "video_url")?.notnull === 1) {
+    db.pragma("foreign_keys = OFF");
+    db.transaction(() => {
+      db.exec(`
+        CREATE TABLE sightings_new (
+          id TEXT PRIMARY KEY,
+          code TEXT UNIQUE NOT NULL,
+          board_id TEXT NOT NULL REFERENCES boards(id),
+          rasid_id TEXT NOT NULL REFERENCES users(id),
+          video_url TEXT,
+          image_url TEXT,
+          video_size_bytes INTEGER,
+          captured_date TEXT NOT NULL,
+          captured_time TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending',
+          deleted_at TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT INTO sightings_new (id, code, board_id, rasid_id, video_url, image_url, video_size_bytes, captured_date, captured_time, status, deleted_at, created_at)
+          SELECT id, code, board_id, rasid_id, video_url, image_url, video_size_bytes, captured_date, captured_time, status, deleted_at, created_at FROM sightings;
+        DROP TABLE sightings;
+        ALTER TABLE sightings_new RENAME TO sightings;
+      `);
+    })();
+    db.pragma("foreign_keys = ON");
   }
 
   const typeCount = db.prepare("SELECT COUNT(*) as c FROM board_types").get() as { c: number };

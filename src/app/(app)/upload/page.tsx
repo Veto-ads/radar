@@ -5,6 +5,7 @@ import BoardCombobox from "@/components/BoardCombobox";
 import type { Board } from "@/lib/types";
 
 const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
 function formatMB(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} ميجابايت`;
@@ -12,12 +13,16 @@ function formatMB(bytes: number) {
 
 export default function UploadPage() {
   const [board, setBoard] = useState<Board | null>(null);
+  const [mode, setMode] = useState<"video" | "image">("video");
   const [file, setFile] = useState<File | null>(null);
   const [now, setNow] = useState(new Date());
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [stats, setStats] = useState<{ today: number; month: number }>({ today: 0, month: 0 });
+
+  const maxBytes = mode === "video" ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+  const maxLabel = mode === "video" ? "200 ميجابايت" : "20 ميجابايت";
 
   useEffect(() => {
     setNow(new Date());
@@ -38,11 +43,11 @@ export default function UploadPage() {
       return;
     }
     if (!file) {
-      setError("يرجى إضافة مقطع فيديو");
+      setError(mode === "video" ? "يرجى إضافة مقطع فيديو" : "يرجى إضافة صورة");
       return;
     }
-    if (file.size > MAX_VIDEO_BYTES) {
-      setError(`حجم الفيديو (${formatMB(file.size)}) يتجاوز الحد الأقصى المسموح (200 ميجابايت)`);
+    if (file.size > maxBytes) {
+      setError(`حجم الملف (${formatMB(file.size)}) يتجاوز الحد الأقصى المسموح (${maxLabel})`);
       return;
     }
     setSubmitting(true);
@@ -50,7 +55,7 @@ export default function UploadPage() {
     try {
       const fd = new FormData();
       fd.set("board_id", board.id);
-      fd.set("video", file);
+      fd.set(mode, file);
       const res = await fetch("/api/sightings", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) {
@@ -142,17 +147,52 @@ export default function UploadPage() {
           </div>
 
           <div>
-            <label className="field-label">إضافة فيديو (الحد الأقصى 200 ميجابايت)</label>
+            <label className="field-label">طريقة التوثيق</label>
+            <div className="flex gap-2" style={{ marginBottom: 8 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("video");
+                  setFile(null);
+                  setError("");
+                }}
+                className={mode === "video" ? "btn-primary" : "btn-secondary"}
+                style={{ padding: "8px 16px", flex: 1 }}
+              >
+                🎥 فيديو
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("image");
+                  setFile(null);
+                  setError("");
+                }}
+                className={mode === "image" ? "btn-primary" : "btn-secondary"}
+                style={{ padding: "8px 16px", flex: 1 }}
+              >
+                🖼️ صورة
+              </button>
+            </div>
+            <label className="field-label">
+              {mode === "video" ? `إضافة فيديو (الحد الأقصى ${maxLabel})` : `إضافة صورة (الحد الأقصى ${maxLabel})`}
+            </label>
             <input
+              key={mode}
               className="field-input"
               type="file"
-              accept="video/*"
+              accept={mode === "video" ? "video/*" : "image/*"}
               onChange={(e) => {
                 const f = e.target.files?.[0] || null;
                 setFile(f);
-                setError(f && f.size > MAX_VIDEO_BYTES ? `حجم الفيديو (${formatMB(f.size)}) يتجاوز الحد الأقصى المسموح (200 ميجابايت)` : "");
+                setError(f && f.size > maxBytes ? `حجم الملف (${formatMB(f.size)}) يتجاوز الحد الأقصى المسموح (${maxLabel})` : "");
               }}
             />
+            {mode === "image" && (
+              <p style={{ fontSize: "var(--fs-caption)", color: "var(--text-muted)", marginTop: 4 }}>
+                استخدم الصورة فقط إذا تعذّر تصوير فيديو — التحليل بالذكاء الاصطناعي يعطي تقديرات أقل دقة من الفيديو.
+              </p>
+            )}
             {file && (
               <p style={{ fontSize: "var(--fs-caption)", color: "var(--text-muted)", marginTop: 4 }}>
                 حجم الملف: {formatMB(file.size)}
@@ -178,7 +218,7 @@ export default function UploadPage() {
 
           <button
             type="submit"
-            disabled={submitting || !!(file && file.size > MAX_VIDEO_BYTES)}
+            disabled={submitting || !!(file && file.size > maxBytes)}
             className="btn-primary"
             style={{ padding: "12px 0" }}
           >
