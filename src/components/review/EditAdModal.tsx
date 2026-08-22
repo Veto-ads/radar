@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Modal from "@/components/Modal";
 import BoardCombobox from "@/components/BoardCombobox";
+import AutocompleteInput from "@/components/AutocompleteInput";
 import type { Board } from "@/lib/types";
 import type { AdRow } from "@/lib/reviewTypes";
 
@@ -16,6 +17,7 @@ export default function EditAdModal({
   onSaved: () => void;
 }) {
   const [sectors, setSectors] = useState<string[]>([]);
+  const [companies, setCompanies] = useState<string[]>([]);
   const [newBoard, setNewBoard] = useState<Board | null>(null);
   const [form, setForm] = useState({
     company_name: ad.company_name,
@@ -33,6 +35,9 @@ export default function EditAdModal({
     fetch("/api/sectors")
       .then((r) => r.json())
       .then((d) => setSectors((d.sectors || []).map((s: { name: string }) => s.name)));
+    fetch("/api/companies")
+      .then((r) => r.json())
+      .then((d) => setCompanies((d.companies || []).map((c: { name: string }) => c.name)));
   }, []);
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -107,22 +112,21 @@ export default function EditAdModal({
         </div>
         <div>
           <label className="field-label">اسم الشركة</label>
-          <input
-            className="field-input"
+          <AutocompleteInput
             value={form.company_name}
-            onChange={(e) => set("company_name", e.target.value)}
+            onChange={(v) => set("company_name", v)}
+            options={companies}
+            placeholder="ابحث أو اكتب اسم شركة جديدة..."
           />
         </div>
         <div>
           <label className="field-label">القطاع</label>
-          <select className="field-input" value={form.sector} onChange={(e) => set("sector", e.target.value)}>
-            {!sectors.includes(form.sector) && <option value={form.sector}>{form.sector}</option>}
-            {sectors.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+          <AutocompleteInput
+            value={form.sector}
+            onChange={(v) => set("sector", v)}
+            options={sectors}
+            placeholder="ابحث أو اكتب قطاعاً جديداً..."
+          />
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div>
