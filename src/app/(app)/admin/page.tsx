@@ -4,6 +4,7 @@ import BoardsCatalog from "@/components/admin/BoardsCatalog";
 import UsersManager from "@/components/admin/UsersManager";
 import ExportDataSection from "@/components/admin/ExportDataSection";
 import ApiKeysManager from "@/components/admin/ApiKeysManager";
+import GeminiPromptSettings from "@/components/admin/GeminiPromptSettings";
 
 export default function AdminPage() {
   return (
@@ -33,6 +34,7 @@ export default function AdminPage() {
       <UsersManager />
       <ExportDataSection />
       <ApiKeysManager />
+      <GeminiPromptSettings />
     </div>
   );
 }

@@ -77,11 +77,6 @@ const imageResponseSchema: Schema = {
   required: ["ads"],
 };
 
-const IMAGE_PROMPT =
-  "حلل الصورة المرفقة للوحة أو شاشة إعلانية بدون فيديو، واذكر لكل شركة معلنة ظاهرة في الصورة: اسم الشركة، وقطاعها، " +
-  "والمدة التقديرية لظهور الإعلان الواحد بالثواني وفق المعتاد لهذا النوع من اللوحات، وعدد مرات التكرار التقديرية " +
-  "في الدقيقة وفي اليوم، وهدف الإعلان بجملة واحدة.";
-
 function mimeTypeFromExt(filePath: string): string {
   const ext = filePath.split(".").pop()?.toLowerCase();
   const map: Record<string, string> = {
@@ -166,7 +161,11 @@ export async function analyzeSightingVideo(
   }
 }
 
-export async function analyzeSightingImage(absoluteImagePath: string, statusKey?: string): Promise<GeminiAd[]> {
+export async function analyzeSightingImage(
+  absoluteImagePath: string,
+  prompt: string,
+  statusKey?: string
+): Promise<GeminiAd[]> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY غير مضبوط في متغيرات البيئة");
@@ -186,7 +185,7 @@ export async function analyzeSightingImage(absoluteImagePath: string, statusKey?
   const imagePart = { inlineData: { data: buffer.toString("base64"), mimeType } };
 
   try {
-    const result = await generateContentWithRetry(model, [imagePart, { text: IMAGE_PROMPT }], statusKey);
+    const result = await generateContentWithRetry(model, [imagePart, { text: prompt }], statusKey);
     const text = result.response.text();
     const parsed = JSON.parse(text) as { ads: GeminiAd[] };
     return dedupeAdsByCompany(parsed.ads || []);

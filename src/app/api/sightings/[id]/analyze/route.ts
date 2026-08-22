@@ -39,7 +39,10 @@ export async function POST(_request: Request, context: RouteContext<"/api/sighti
       };
       ads = await analyzeSightingVideo(absoluteVideoPath, promptRow.value, id);
     } else {
-      ads = await analyzeSightingImage(absoluteImagePath!, id);
+      const promptRow = db.prepare("SELECT value FROM settings WHERE key = 'gemini_image_prompt'").get() as {
+        value: string;
+      };
+      ads = await analyzeSightingImage(absoluteImagePath!, promptRow.value, id);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "فشل التحليل";
