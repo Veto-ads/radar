@@ -7,9 +7,22 @@ import type { Board } from "@/lib/types";
 const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
+const STATUS_LABEL: Record<string, string> = {
+  pending: "بانتظار المراجعة",
+  analyzed: "تم التحليل",
+};
+
 function formatMB(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} ميجابايت`;
 }
+
+type TodayBoard = {
+  code: string;
+  captured_time: string;
+  status: string;
+  board_name: string;
+  board_type: string;
+};
 
 export default function UploadPage() {
   const [board, setBoard] = useState<Board | null>(null);
@@ -19,7 +32,11 @@ export default function UploadPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [stats, setStats] = useState<{ today: number; month: number }>({ today: 0, month: 0 });
+  const [stats, setStats] = useState<{ today: number; month: number; todayBoards: TodayBoard[] }>({
+    today: 0,
+    month: 0,
+    todayBoards: [],
+  });
 
   const maxBytes = mode === "video" ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
   const maxLabel = mode === "video" ? "200 ميجابايت" : "20 ميجابايت";
@@ -32,7 +49,7 @@ export default function UploadPage() {
   function refreshStats() {
     fetch("/api/stats/upload")
       .then((r) => r.json())
-      .then((d) => setStats({ today: d.today || 0, month: d.month || 0 }));
+      .then((d) => setStats({ today: d.today || 0, month: d.month || 0, todayBoards: d.todayBoards || [] }));
   }
 
   async function onSubmit(e: FormEvent) {
@@ -242,6 +259,45 @@ export default function UploadPage() {
             اللوحات المرصودة هذا الشهر
           </p>
           <p style={{ color: "white", fontSize: 40, fontWeight: 700 }}>{stats.month}</p>
+        </div>
+        <div>
+          <p style={{ color: "var(--lavender-200)", fontSize: "var(--fs-xs)", marginBottom: 8 }}>
+            ملخص ما رفعته اليوم
+          </p>
+          {stats.todayBoards.length === 0 ? (
+            <p style={{ color: "var(--lavender-200)", fontSize: "var(--fs-xs)" }}>لم ترفع أي مقطع اليوم بعد</p>
+          ) : (
+            <div className="flex flex-col gap-2" style={{ maxHeight: 240, overflowY: "auto" }}>
+              {stats.todayBoards.map((b, i) => (
+                <div
+                  key={`${b.code}-${i}`}
+                  className="flex items-center justify-between"
+                  style={{
+                    background: "rgba(255,255,255,0.12)",
+                    borderRadius: "var(--radius-md)",
+                    padding: "8px 12px",
+                  }}
+                >
+                  <div>
+                    <p style={{ color: "white", fontSize: "var(--fs-xs)", fontWeight: 600 }}>{b.board_name}</p>
+                    <p style={{ color: "var(--lavender-200)", fontSize: "var(--fs-caption)" }}>
+                      {b.board_type} · {b.captured_time}
+                    </p>
+                  </div>
+                  <span
+                    className="chip"
+                    style={{
+                      background: b.status === "analyzed" ? "var(--veto-green)" : "rgba(255,255,255,0.2)",
+                      color: "white",
+                      fontSize: "var(--fs-caption)",
+                    }}
+                  >
+                    {STATUS_LABEL[b.status] || b.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

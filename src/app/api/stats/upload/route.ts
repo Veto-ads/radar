@@ -22,5 +22,14 @@ export async function GET() {
     )
     .get(session.id, `${monthPrefix}%`) as { c: number };
 
-  return NextResponse.json({ today: todayCount.c, month: monthCount.c });
+  const todayBoards = db
+    .prepare(
+      `SELECT s.code, s.captured_time, s.status, b.name as board_name, b.type as board_type
+       FROM sightings s JOIN boards b ON b.id = s.board_id
+       WHERE s.rasid_id = ? AND s.status != 'deleted' AND s.captured_date = ?
+       ORDER BY s.captured_time DESC`
+    )
+    .all(session.id, today);
+
+  return NextResponse.json({ today: todayCount.c, month: monthCount.c, todayBoards });
 }
