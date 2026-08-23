@@ -249,18 +249,6 @@ export default function UploadPage() {
         style={{ padding: 32, background: "var(--gradient-hero)", border: "none" }}
       >
         <div>
-          <p style={{ color: "var(--lavender-200)", fontSize: "var(--fs-xs)", marginBottom: 4 }}>
-            اللوحات المرصودة اليوم
-          </p>
-          <p style={{ color: "white", fontSize: 40, fontWeight: 700 }}>{stats.today}</p>
-        </div>
-        <div>
-          <p style={{ color: "var(--lavender-200)", fontSize: "var(--fs-xs)", marginBottom: 4 }}>
-            اللوحات المرصودة هذا الشهر
-          </p>
-          <p style={{ color: "white", fontSize: 40, fontWeight: 700 }}>{stats.month}</p>
-        </div>
-        <div>
           <p style={{ color: "var(--lavender-200)", fontSize: "var(--fs-xs)", marginBottom: 8 }}>
             ملخص ما رفعته اليوم
           </p>
@@ -298,6 +286,18 @@ export default function UploadPage() {
               ))}
             </div>
           )}
+        </div>
+        <div>
+          <p style={{ color: "var(--lavender-200)", fontSize: "var(--fs-xs)", marginBottom: 4 }}>
+            اللوحات المرصودة اليوم
+          </p>
+          <p style={{ color: "white", fontSize: 40, fontWeight: 700 }}>{stats.today}</p>
+        </div>
+        <div>
+          <p style={{ color: "var(--lavender-200)", fontSize: "var(--fs-xs)", marginBottom: 4 }}>
+            اللوحات المرصودة هذا الشهر
+          </p>
+          <p style={{ color: "white", fontSize: 40, fontWeight: 700 }}>{stats.month}</p>
         </div>
       </div>
     </div>
