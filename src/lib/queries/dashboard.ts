@@ -17,7 +17,7 @@ export function getDashboardStats(from: string, to: string, category: string) {
 
   const companiesToday = db
     .prepare(
-      `SELECT a.company_name as name, COUNT(*) as count
+      `SELECT a.company_name as name, COUNT(DISTINCT b.type) as count
        FROM ads a JOIN sightings s ON s.id=a.sighting_id JOIN boards b ON b.id=s.board_id
        WHERE s.status='analyzed' AND s.captured_date = @today ${catClause}
        GROUP BY a.company_name ORDER BY count DESC LIMIT 8`
