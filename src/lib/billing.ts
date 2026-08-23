@@ -24,3 +24,31 @@ export function estimateSpend(dates: string[], price: number, durationDays: numb
   const uniqueSorted = Array.from(new Set(dates)).sort();
   return countBillingCycles(uniqueSorted, durationDays) * price;
 }
+
+export type BoardSpendRow = {
+  board_type: string;
+  price: number;
+  duration: number;
+  captured_date: string;
+};
+
+// Boards of the same type are the same media slot at the same rate — a
+// company spotted on "Mezah B", "Mezah D", and "Mezah E" within one rental
+// window is one "Mezah" booking, not three. So billing groups by board TYPE
+// rather than by individual board, and (defensively, in case one board row
+// was entered with a stale price) takes the highest price/duration seen for
+// that type rather than assuming they're all identical.
+export function spendAmountsByType(rows: BoardSpendRow[]): number[] {
+  const byType = new Map<string, { price: number; duration: number; dates: string[] }>();
+  for (const r of rows) {
+    const bucket = byType.get(r.board_type);
+    if (bucket) {
+      bucket.dates.push(r.captured_date);
+      bucket.price = Math.max(bucket.price, r.price);
+      bucket.duration = Math.max(bucket.duration, r.duration);
+    } else {
+      byType.set(r.board_type, { price: r.price, duration: r.duration, dates: [r.captured_date] });
+    }
+  }
+  return Array.from(byType.values()).map(({ price, duration, dates }) => estimateSpend(dates, price, duration));
+}

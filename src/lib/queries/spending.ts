@@ -1,30 +1,28 @@
 import { getDb } from "@/lib/db";
-import { estimateSpend } from "@/lib/billing";
+import { spendAmountsByType } from "@/lib/billing";
 
 type Row = {
   entity: string;
-  board_id: string;
+  board_type: string;
   price: number;
   duration: number;
   captured_date: string;
 };
 
 function aggregateSpend(rows: Row[]): { entity: string; amount: number }[] {
-  const byEntityBoard = new Map<string, { entity: string; price: number; duration: number; dates: string[] }>();
+  const byEntity = new Map<string, Row[]>();
   for (const r of rows) {
-    const key = `${r.entity}::${r.board_id}`;
-    const bucket = byEntityBoard.get(key);
-    if (bucket) bucket.dates.push(r.captured_date);
-    else byEntityBoard.set(key, { entity: r.entity, price: r.price, duration: r.duration, dates: [r.captured_date] });
+    const list = byEntity.get(r.entity);
+    if (list) list.push(r);
+    else byEntity.set(r.entity, [r]);
   }
 
-  const totals = new Map<string, number>();
-  for (const { entity, price, duration, dates } of byEntityBoard.values()) {
-    const amount = estimateSpend(dates, price, duration);
-    totals.set(entity, (totals.get(entity) || 0) + amount);
-  }
+  const totals = Array.from(byEntity, ([entity, entityRows]) => ({
+    entity,
+    amount: spendAmountsByType(entityRows).reduce((sum, a) => sum + a, 0),
+  }));
 
-  return Array.from(totals, ([entity, amount]) => ({ entity, amount })).sort((a, b) => b.amount - a.amount);
+  return totals.sort((a, b) => b.amount - a.amount);
 }
 
 export function getSpendingStats(from: string, to: string) {
@@ -33,7 +31,7 @@ export function getSpendingStats(from: string, to: string) {
 
   const companyRows = db
     .prepare(
-      `SELECT a.company_name as entity, b.id as board_id, b.price as price,
+      `SELECT a.company_name as entity, b.type as board_type, b.price as price,
               b.price_duration_days as duration, s.captured_date as captured_date
        FROM ads a JOIN sightings s ON s.id=a.sighting_id JOIN boards b ON b.id=s.board_id
        WHERE s.status='analyzed' AND s.captured_date BETWEEN @from AND @to`
@@ -42,7 +40,7 @@ export function getSpendingStats(from: string, to: string) {
 
   const sectorRows = db
     .prepare(
-      `SELECT a.sector as entity, b.id as board_id, b.price as price,
+      `SELECT a.sector as entity, b.type as board_type, b.price as price,
               b.price_duration_days as duration, s.captured_date as captured_date
        FROM ads a JOIN sightings s ON s.id=a.sighting_id JOIN boards b ON b.id=s.board_id
        WHERE s.status='analyzed' AND s.captured_date BETWEEN @from AND @to`

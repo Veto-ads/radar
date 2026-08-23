@@ -1,5 +1,5 @@
 import { getDb } from "@/lib/db";
-import { estimateSpend } from "@/lib/billing";
+import { spendAmountsByType, type BoardSpendRow } from "@/lib/billing";
 import { tallyStreets } from "@/lib/streets";
 
 export function getCompanyStats(name: string, from: string, to: string) {
@@ -52,23 +52,15 @@ export function getCompanyStats(name: string, from: string, to: string) {
 
   const spendRows = db
     .prepare(
-      `SELECT b.id as board_id, b.price as price, b.price_duration_days as duration, s.captured_date as captured_date
+      `SELECT b.type as board_type, b.price as price, b.price_duration_days as duration, s.captured_date as captured_date
        FROM ads a JOIN sightings s ON s.id=a.sighting_id JOIN boards b ON b.id=s.board_id
        WHERE s.status='analyzed' AND a.company_name=@name AND s.captured_date BETWEEN @from AND @to`
     )
-    .all(params) as { board_id: string; price: number; duration: number; captured_date: string }[];
+    .all(params) as BoardSpendRow[];
 
-  const byBoard = new Map<string, { price: number; duration: number; dates: string[] }>();
-  for (const r of spendRows) {
-    const bucket = byBoard.get(r.board_id);
-    if (bucket) bucket.dates.push(r.captured_date);
-    else byBoard.set(r.board_id, { price: r.price, duration: r.duration, dates: [r.captured_date] });
-  }
-  const boardAmounts = Array.from(byBoard.values()).map(({ price, duration, dates }) =>
-    estimateSpend(dates, price, duration)
-  );
-  const spendingTotal = boardAmounts.reduce((sum, a) => sum + a, 0);
-  const spendingAvg = boardAmounts.length ? spendingTotal / boardAmounts.length : 0;
+  const typeAmounts = spendAmountsByType(spendRows);
+  const spendingTotal = typeAmounts.reduce((sum, a) => sum + a, 0);
+  const spendingAvg = typeAmounts.length ? spendingTotal / typeAmounts.length : 0;
 
   const streetsRows = db
     .prepare(
