@@ -18,13 +18,19 @@ const DURATIONS = [
 
 export default function BoardModal({
   board,
+  duplicateFrom,
   onClose,
   onSaved,
 }: {
   board: Board | null;
+  duplicateFrom?: Board;
   onClose: () => void;
   onSaved: () => void;
 }) {
+  // Duplicating pre-fills the form from an existing board but still creates a
+  // new one (no id carried over), so the source board is kept as a separate
+  // prop from `board` — `board` alone decides PATCH-vs-POST on save.
+  const source = board || duplicateFrom || null;
   const [types, setTypes] = useState<{ id: string; name: string }[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
 
@@ -38,19 +44,19 @@ export default function BoardModal({
   }, []);
 
   const [form, setForm] = useState({
-    name: board?.name || "",
-    type: board?.type || "",
-    category: board?.category || "",
-    city: board?.city || "",
-    district: board?.district || "",
-    streets: board ? (board.streets as unknown as string[]).join("، ") : "",
-    faces: board?.faces ?? 1,
-    screens: board?.screens ?? 0,
-    price_duration_days: board?.price_duration_days ?? 14,
-    price: board?.price ?? 0,
-    location_url: board?.location_url || "",
-    image_url: board?.image_url || "",
-    company: board?.company || "",
+    name: duplicateFrom ? `${duplicateFrom.name} - نسخة` : source?.name || "",
+    type: source?.type || "",
+    category: source?.category || "",
+    city: source?.city || "",
+    district: source?.district || "",
+    streets: source ? (source.streets as unknown as string[]).join("، ") : "",
+    faces: source?.faces ?? 1,
+    screens: source?.screens ?? 0,
+    price_duration_days: source?.price_duration_days ?? 14,
+    price: source?.price ?? 0,
+    location_url: source?.location_url || "",
+    image_url: source?.image_url || "",
+    company: source?.company || "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -102,7 +108,7 @@ export default function BoardModal({
   }
 
   return (
-    <Modal title={board ? "تعديل لوحة" : "إضافة لوحة"} onClose={onClose} width={560}>
+    <Modal title={board ? "تعديل لوحة" : duplicateFrom ? "نسخ لوحة" : "إضافة لوحة"} onClose={onClose} width={560}>
       <div className="flex flex-col gap-3">
         <div>
           <label className="field-label">الاسم</label>

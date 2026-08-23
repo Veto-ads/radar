@@ -43,6 +43,7 @@ const PAGE_SIZE = 10;
 export default function BoardsCatalog() {
   const [boards, setBoards] = useState<Board[]>([]);
   const [modalBoard, setModalBoard] = useState<Board | null | "new">(null);
+  const [duplicateSource, setDuplicateSource] = useState<Board | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
@@ -210,6 +211,13 @@ export default function BoardsCatalog() {
                     <button onClick={() => setModalBoard(b)} className="btn-secondary" style={{ padding: "6px 12px" }}>
                       تعديل
                     </button>
+                    <button
+                      onClick={() => setDuplicateSource(b)}
+                      className="btn-secondary"
+                      style={{ padding: "6px 12px" }}
+                    >
+                      نسخ
+                    </button>
                     <button onClick={() => remove(b.id)} className="btn-danger" style={{ fontSize: "var(--fs-caption)" }}>
                       حذف
                     </button>
@@ -258,6 +266,14 @@ export default function BoardsCatalog() {
         <BoardModal
           board={modalBoard === "new" ? null : modalBoard}
           onClose={() => setModalBoard(null)}
+          onSaved={load}
+        />
+      )}
+      {duplicateSource && (
+        <BoardModal
+          board={null}
+          duplicateFrom={duplicateSource}
+          onClose={() => setDuplicateSource(null)}
           onSaved={load}
         />
       )}
