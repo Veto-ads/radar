@@ -78,5 +78,26 @@ export function getDashboardStats(from: string, to: string, category: string) {
     )
     .all(params);
 
-  return { totals, companiesToday, sectorsDist, sectorByMedia, topSectors, topRepeatedAds, trend, topCompanies };
+  // Backs the "أكثر الشركات إعلاناً" sector filter — one pass over every
+  // (sector, company) pair so the frontend can filter without a round-trip.
+  const companiesBySector = db
+    .prepare(
+      `SELECT a.sector as sector, a.company_name as company, COUNT(*) as count
+       FROM ads a JOIN sightings s ON s.id=a.sighting_id JOIN boards b ON b.id=s.board_id
+       WHERE s.status='analyzed' AND s.captured_date BETWEEN @from AND @to ${catClause}
+       GROUP BY a.sector, a.company_name ORDER BY count DESC`
+    )
+    .all(params);
+
+  return {
+    totals,
+    companiesToday,
+    sectorsDist,
+    sectorByMedia,
+    topSectors,
+    topRepeatedAds,
+    trend,
+    topCompanies,
+    companiesBySector,
+  };
 }

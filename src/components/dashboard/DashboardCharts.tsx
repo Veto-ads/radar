@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, type ReactNode } from "react";
 import ChartCanvas from "./ChartCanvas";
 import RankedShareList from "./RankedShareList";
 import { CHART_PALETTE } from "@/lib/chartColors";
@@ -24,6 +25,7 @@ type DashboardData = {
   topRepeatedAds: { company: string; board: string; repeats_per_day: number }[];
   trend: { date: string; count: number }[];
   topCompanies: { company: string; count: number }[];
+  companiesBySector: { sector: string; company: string; count: number }[];
 };
 
 function pieLegendWithPercent(labels: string[], values: number[]) {
@@ -31,7 +33,13 @@ function pieLegendWithPercent(labels: string[], values: number[]) {
   return labels.map((l, i) => `${l} (${Math.round((values[i] / total) * 100)}%)`);
 }
 
+type Tile =
+  | { title: string; kind: "chart"; cfg: ChartConfiguration; wide?: boolean }
+  | { title: string; kind: "ranked"; items: { label: string; count: number }[]; wide?: boolean; header?: ReactNode };
+
 export default function DashboardCharts({ data }: { data: DashboardData }) {
+  const [companySector, setCompanySector] = useState("");
+
   const companiesTodayRanked = data.companiesToday.map((c) => ({ label: c.name, count: c.count }));
 
   const sectorsTop5 = collapseTopN(
@@ -50,7 +58,9 @@ export default function DashboardCharts({ data }: { data: DashboardData }) {
     options: { plugins: { legend: { position: "bottom" } } },
   };
 
-  const mediaTypes = Array.from(new Set(data.sectorByMedia.map((r) => r.board_type)));
+  // Board type (from the boards catalog) is the primary axis here — sectors
+  // are the stacked series within each type, capped at the top 7 + "أخرى".
+  const boardTypes = Array.from(new Set(data.sectorByMedia.map((r) => r.board_type)));
   const sectorTotals = new Map<string, number>();
   for (const r of data.sectorByMedia) sectorTotals.set(r.sector, (sectorTotals.get(r.sector) || 0) + r.count);
   const sectorsByTotal = Array.from(sectorTotals.entries())
@@ -58,14 +68,14 @@ export default function DashboardCharts({ data }: { data: DashboardData }) {
     .map(([sector]) => sector);
   const topMediaSectors = sectorsByTotal.slice(0, 7);
   const otherMediaSectors = new Set(sectorsByTotal.slice(7));
-  const stackedSectors = otherMediaSectors.size > 0 ? [...topMediaSectors, OTHER_LABEL] : topMediaSectors;
+  const stackedSeries = otherMediaSectors.size > 0 ? [...topMediaSectors, OTHER_LABEL] : topMediaSectors;
   const stackedCfg: ChartConfiguration = {
     type: "bar",
     data: {
-      labels: stackedSectors,
-      datasets: mediaTypes.map((type, i) => ({
-        label: type,
-        data: stackedSectors.map((sector) =>
+      labels: boardTypes,
+      datasets: stackedSeries.map((sector, i) => ({
+        label: sector,
+        data: boardTypes.map((type) =>
           sector === OTHER_LABEL
             ? data.sectorByMedia
                 .filter((r) => otherMediaSectors.has(r.sector) && r.board_type === type)
@@ -76,7 +86,6 @@ export default function DashboardCharts({ data }: { data: DashboardData }) {
       })),
     },
     options: {
-      indexAxis: "y",
       plugins: { legend: { position: "bottom" } },
       scales: { x: { stacked: true }, y: { stacked: true } },
     },
@@ -91,16 +100,15 @@ export default function DashboardCharts({ data }: { data: DashboardData }) {
     options: { plugins: { legend: { display: false } } },
   };
 
-  const topRepeatedCfg: ChartConfiguration = {
-    type: "bar",
-    data: {
-      labels: data.topRepeatedAds.map((a) => `${a.company} — ${a.board}`),
-      datasets: [
-        { label: "التكرار اليومي", data: data.topRepeatedAds.map((a) => a.repeats_per_day), backgroundColor: CHART_PALETTE[4] },
-      ],
-    },
-    options: { indexAxis: "y", plugins: { legend: { display: false } } },
-  };
+  // RankedShareList keys rows by label — dedupe same company/board pairs
+  // (re-analysis can leave more than one) rather than letting them collide.
+  // topRepeatedAds is already ordered DESC, so the first occurrence kept is
+  // the highest one.
+  const topRepeatedRanked = Array.from(
+    new Map(
+      data.topRepeatedAds.map((a) => [`${a.company} — ${a.board}`, a.repeats_per_day])
+    )
+  ).map(([label, count]) => ({ label, count }));
 
   const trendCfg: ChartConfiguration = {
     type: "line",
@@ -120,30 +128,58 @@ export default function DashboardCharts({ data }: { data: DashboardData }) {
     options: { plugins: { legend: { display: false } } },
   };
 
-  const topCompaniesTop7 = collapseTopN(
-    data.topCompanies.map((c) => ({ label: c.company, count: c.count })),
-    7
-  );
+  const sectorOptions = Array.from(new Set(data.sectorsDist.map((s) => s.sector)));
+  const topCompaniesSource = companySector
+    ? data.companiesBySector
+        .filter((r) => r.sector === companySector)
+        .map((r) => ({ label: r.company, count: r.count }))
+    : data.topCompanies.map((c) => ({ label: c.company, count: c.count }));
+  const topCompaniesTop7 = collapseTopN(topCompaniesSource, 7);
 
-  const tiles: (
-    | { title: string; kind: "chart"; cfg: ChartConfiguration }
-    | { title: string; kind: "ranked"; items: { label: string; count: number }[] }
-  )[] = [
+  const tiles: Tile[] = [
     { title: "الشركات المعلنة اليوم", kind: "ranked", items: companiesTodayRanked },
     { title: "القطاعات", kind: "chart", cfg: sectorsPieCfg },
-    { title: "توزيع القطاعات على الوسائل", kind: "chart", cfg: stackedCfg },
+    { title: "توزيع القطاعات على الوسائل", kind: "chart", cfg: stackedCfg, wide: true },
     { title: "أكثر القطاعات استحواذاً", kind: "chart", cfg: topSectorsCfg },
-    { title: "أكثر الإعلانات تكراراً", kind: "chart", cfg: topRepeatedCfg },
+    { title: "أكثر الإعلانات تكراراً", kind: "ranked", items: topRepeatedRanked },
     { title: "اتجاه الرصد عبر الأيام", kind: "chart", cfg: trendCfg },
-    { title: "أكثر الشركات إعلاناً", kind: "ranked", items: topCompaniesTop7 },
+    {
+      title: "أكثر الشركات إعلاناً",
+      kind: "ranked",
+      items: topCompaniesTop7,
+      header: (
+        <select
+          className="field-input"
+          value={companySector}
+          onChange={(e) => setCompanySector(e.target.value)}
+          style={{ marginBottom: 12 }}
+        >
+          <option value="">كل القطاعات</option>
+          {sectorOptions.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      ),
+    },
   ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {tiles.map((t) => (
-        <div key={t.title} className="card" style={{ padding: 20 }}>
+        <div
+          key={t.title}
+          className="card"
+          style={{ padding: 20, ...(t.wide ? { gridColumn: "1 / -1" } : {}) }}
+        >
           <h3 style={{ font: "var(--text-label)", color: "var(--text-heading)", marginBottom: 12 }}>{t.title}</h3>
-          {t.kind === "chart" ? <ChartCanvas config={t.cfg} /> : <RankedShareList items={t.items} />}
+          {t.kind === "ranked" && t.header}
+          {t.kind === "chart" ? (
+            <ChartCanvas config={t.cfg} height={t.wide ? 340 : 260} />
+          ) : (
+            <RankedShareList items={t.items} />
+          )}
         </div>
       ))}
     </div>
