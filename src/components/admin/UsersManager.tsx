@@ -30,6 +30,7 @@ const ROLE_LABELS: Record<string, string> = {
 export default function UsersManager() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [addOpen, setAddOpen] = useState(false);
+  const [duplicateSource, setDuplicateSource] = useState<UserRow | null>(null);
   const [editingName, setEditingName] = useState<{ id: string; value: string } | null>(null);
   const [assigningUser, setAssigningUser] = useState<UserRow | null>(null);
   const [passwordUser, setPasswordUser] = useState<UserRow | null>(null);
@@ -170,6 +171,13 @@ export default function UsersManager() {
                     >
                       كلمة المرور
                     </button>
+                    <button
+                      onClick={() => setDuplicateSource(u)}
+                      className="btn-secondary"
+                      style={{ padding: "6px 12px", fontSize: "var(--fs-caption)" }}
+                    >
+                      نسخ
+                    </button>
                     <button onClick={() => remove(u.id)} className="btn-danger" style={{ fontSize: "var(--fs-caption)" }}>
                       حذف
                     </button>
@@ -187,6 +195,13 @@ export default function UsersManager() {
       </div>
 
       {addOpen && <AddUserModal onClose={() => setAddOpen(false)} onSaved={load} />}
+      {duplicateSource && (
+        <AddUserModal
+          duplicateFrom={duplicateSource}
+          onClose={() => setDuplicateSource(null)}
+          onSaved={load}
+        />
+      )}
       {assigningUser && (
         <AssignBoardsModal
           userId={assigningUser.id}

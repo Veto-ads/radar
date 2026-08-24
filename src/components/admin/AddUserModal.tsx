@@ -11,13 +11,35 @@ const ROLES = [
   { value: "custom", label: "دور مخصص" },
 ];
 
-export default function AddUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+type DuplicateSource = {
+  role: string;
+  custom_role: string | null;
+  can_upload: number;
+  can_review: number;
+  can_dashboard: number;
+  can_admin: number;
+};
+
+export default function AddUserModal({
+  duplicateFrom,
+  onClose,
+  onSaved,
+}: {
+  duplicateFrom?: DuplicateSource;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState("rasid");
-  const [customRole, setCustomRole] = useState("");
-  const [perms, setPerms] = useState({ can_upload: false, can_review: false, can_dashboard: false, can_admin: false });
+  const [role, setRole] = useState(duplicateFrom?.role || "rasid");
+  const [customRole, setCustomRole] = useState(duplicateFrom?.custom_role || "");
+  const [perms, setPerms] = useState({
+    can_upload: !!duplicateFrom?.can_upload,
+    can_review: !!duplicateFrom?.can_review,
+    can_dashboard: !!duplicateFrom?.can_dashboard,
+    can_admin: !!duplicateFrom?.can_admin,
+  });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -53,8 +75,13 @@ export default function AddUserModal({ onClose, onSaved }: { onClose: () => void
   }
 
   return (
-    <Modal title="إضافة مستخدم" onClose={onClose} width={480}>
+    <Modal title={duplicateFrom ? "نسخ مستخدم" : "إضافة مستخدم"} onClose={onClose} width={480}>
       <div className="flex flex-col gap-3">
+        {duplicateFrom && (
+          <p style={{ fontSize: "var(--fs-caption)", color: "var(--text-muted)" }}>
+            نُسخت الصلاحيات والدور من المستخدم المصدر — أدخل اسماً واسم مستخدم وكلمة مرور جديدة
+          </p>
+        )}
         <div>
           <label className="field-label">الاسم الكامل</label>
           <input className="field-input" value={fullName} onChange={(e) => setFullName(e.target.value)} />
