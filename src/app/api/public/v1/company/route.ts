@@ -1,4 +1,4 @@
-import { corsJson, corsPreflight, requireApiKey } from "@/lib/publicApi";
+import { corsJson, corsPreflight, requireApiKey, getPublicOrigin } from "@/lib/publicApi";
 import { getCompanyStats } from "@/lib/queries/company";
 
 export async function OPTIONS() {
@@ -10,7 +10,8 @@ export async function GET(request: Request) {
     return corsJson({ error: "مفتاح API غير صالح" }, 401);
   }
 
-  const { searchParams, origin } = new URL(request.url);
+  const origin = getPublicOrigin(request);
+  const { searchParams } = new URL(request.url);
   const name = searchParams.get("name");
   const from = searchParams.get("from") || "2000-01-01";
   const to = searchParams.get("to") || "2999-12-31";

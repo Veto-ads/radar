@@ -1,4 +1,4 @@
-import { corsJson, corsPreflight, requireApiKey } from "@/lib/publicApi";
+import { corsJson, corsPreflight, requireApiKey, getPublicOrigin } from "@/lib/publicApi";
 import { findUnitCluster } from "@/lib/unitMatching";
 import { getAllBoardTypesWithCounts, getUnitStats } from "@/lib/queries/unit";
 
@@ -11,7 +11,8 @@ export async function GET(request: Request) {
     return corsJson({ error: "مفتاح API غير صالح" }, 401);
   }
 
-  const { searchParams, origin } = new URL(request.url);
+  const origin = getPublicOrigin(request);
+  const { searchParams } = new URL(request.url);
   const name = searchParams.get("name")?.trim();
   const nameEn = searchParams.get("name_en")?.trim() || null;
   const from = searchParams.get("from") || "2000-01-01";

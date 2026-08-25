@@ -18,3 +18,13 @@ export function corsPreflight() {
 export function requireApiKey(request: Request): boolean {
   return verifyApiKey(extractApiKey(request));
 }
+
+// `new URL(request.url).origin` reflects the address Next.js's own server
+// is bound to (localhost:3000 behind the nginx reverse proxy here), not the
+// public hostname — neither the Host nor X-Forwarded-Host header changes
+// that. SITE_URL is the reliable source for building absolute (non-
+// localhost) URLs in public API responses; falls back to the request's own
+// origin so this still works untouched in local dev.
+export function getPublicOrigin(request: Request): string {
+  return process.env.SITE_URL || new URL(request.url).origin;
+}
