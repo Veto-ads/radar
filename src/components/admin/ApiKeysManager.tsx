@@ -17,6 +17,8 @@ const ENDPOINTS = [
   { path: "/api/public/v1/company", params: "name, from, to" },
   { path: "/api/public/v1/sector", params: "name, from, to" },
   { path: "/api/public/v1/board-type", params: "type, sector" },
+  { path: "/api/public/v1/unit", params: "name, name_en, from, to" },
+  { path: "/api/public/v1/units", params: "from, to" },
 ];
 
 export default function ApiKeysManager() {
