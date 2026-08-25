@@ -108,51 +108,71 @@ export function getRetryStatus(key: string): RetryStatus | undefined {
   return retryStatusByKey.get(key);
 }
 
+// Primary key first, then the backup — set GEMINI_API_KEY_BACKUP to enable
+// failover. Two analyses running at once (two reviewers, two "تحليل
+// بالذكاء الاصطناعي" clicks) can otherwise both land on the primary key's
+// rate limit at the same moment; if one gets throttled, it falls over to
+// the backup key instead of failing outright.
+function getApiKeys(): string[] {
+  const keys = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY_BACKUP]
+    .map((k) => k?.trim())
+    .filter((k): k is string => !!k);
+  if (keys.length === 0) {
+    throw new Error("GEMINI_API_KEY غير مضبوط في متغيرات البيئة");
+  }
+  return keys;
+}
+
+type ContentPart =
+  | { fileData: { fileUri: string; mimeType: string } }
+  | { inlineData: { data: string; mimeType: string } };
+
+type ModelConfig = {
+  model: string;
+  generationConfig: { responseMimeType: string; responseSchema: Schema };
+};
+
 export async function analyzeSightingVideo(
   absoluteVideoPath: string,
   prompt: string,
   statusKey?: string
 ): Promise<GeminiAd[]> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY غير مضبوط في متغيرات البيئة");
-  }
-
+  const apiKeys = getApiKeys();
   const mimeType = mimeTypeFromExt(absoluteVideoPath);
-  const genAI = new GoogleGenerativeAI(apiKey);
-  // README specifies the pinned "gemini-2.5-flash", but Google retired that pin for
-  // new API keys (404 on generateContent); the "-latest" alias tracks the current flash model.
-  const model = genAI.getGenerativeModel({
-    model: "gemini-flash-latest",
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema,
-    },
-  });
-
   const stat = await import("node:fs/promises").then((fs) => fs.stat(absoluteVideoPath));
 
-  let videoPart: { fileData: { fileUri: string; mimeType: string } } | { inlineData: { data: string; mimeType: string } };
-
-  if (stat.size > INLINE_LIMIT_BYTES) {
-    const fileManager = new GoogleAIFileManager(apiKey);
-    const uploaded = await fileManager.uploadFile(absoluteVideoPath, { mimeType });
-    let file = uploaded.file;
-    while (file.state === FileState.PROCESSING) {
-      await new Promise((r) => setTimeout(r, 2000));
-      file = await fileManager.getFile(file.name);
+  // A File API upload (large videos) is scoped to the key/project that
+  // created it, so falling back to the backup key means re-uploading under
+  // that key — this rebuilds the part per key attempt instead of once.
+  // Small videos sent inline don't have that issue; the same bytes work
+  // under any key.
+  const buildPart = async (apiKey: string): Promise<ContentPart> => {
+    if (stat.size > INLINE_LIMIT_BYTES) {
+      const fileManager = new GoogleAIFileManager(apiKey);
+      const uploaded = await fileManager.uploadFile(absoluteVideoPath, { mimeType });
+      let file = uploaded.file;
+      while (file.state === FileState.PROCESSING) {
+        await new Promise((r) => setTimeout(r, 2000));
+        file = await fileManager.getFile(file.name);
+      }
+      if (file.state === FileState.FAILED) {
+        throw new Error("فشل معالجة الفيديو على خوادم Gemini");
+      }
+      return { fileData: { fileUri: file.uri, mimeType } };
     }
-    if (file.state === FileState.FAILED) {
-      throw new Error("فشل معالجة الفيديو على خوادم Gemini");
-    }
-    videoPart = { fileData: { fileUri: file.uri, mimeType } };
-  } else {
     const buffer = await readFile(absoluteVideoPath);
-    videoPart = { inlineData: { data: buffer.toString("base64"), mimeType } };
-  }
+    return { inlineData: { data: buffer.toString("base64"), mimeType } };
+  };
+
+  // README specifies the pinned "gemini-2.5-flash", but Google retired that pin for
+  // new API keys (404 on generateContent); the "-latest" alias tracks the current flash model.
+  const modelConfig: ModelConfig = {
+    model: "gemini-flash-latest",
+    generationConfig: { responseMimeType: "application/json", responseSchema },
+  };
 
   try {
-    const result = await generateContentWithRetry(model, [videoPart, { text: prompt }], statusKey);
+    const result = await generateContentWithFailover(apiKeys, modelConfig, buildPart, prompt, statusKey);
     const text = result.response.text();
     const parsed = JSON.parse(text) as { ads: GeminiAd[] };
     return dedupeAdsByCompany(parsed.ads || []);
@@ -166,26 +186,19 @@ export async function analyzeSightingImage(
   prompt: string,
   statusKey?: string
 ): Promise<GeminiAd[]> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY غير مضبوط في متغيرات البيئة");
-  }
-
+  const apiKeys = getApiKeys();
   const mimeType = mimeTypeFromImageExt(absoluteImagePath);
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: "gemini-flash-latest",
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema: imageResponseSchema,
-    },
-  });
-
   const buffer = await readFile(absoluteImagePath);
-  const imagePart = { inlineData: { data: buffer.toString("base64"), mimeType } };
+  const inlinePart: ContentPart = { inlineData: { data: buffer.toString("base64"), mimeType } };
+  const buildPart = async () => inlinePart;
+
+  const modelConfig: ModelConfig = {
+    model: "gemini-flash-latest",
+    generationConfig: { responseMimeType: "application/json", responseSchema: imageResponseSchema },
+  };
 
   try {
-    const result = await generateContentWithRetry(model, [imagePart, { text: prompt }], statusKey);
+    const result = await generateContentWithFailover(apiKeys, modelConfig, buildPart, prompt, statusKey);
     const text = result.response.text();
     const parsed = JSON.parse(text) as { ads: GeminiAd[] };
     return dedupeAdsByCompany(parsed.ads || []);
@@ -209,27 +222,61 @@ function dedupeAdsByCompany(ads: GeminiAd[]): GeminiAd[] {
 const RETRYABLE_STATUS = [503, 429];
 const RETRY_DELAYS_MS = [2000, 5000, 10000];
 
-async function generateContentWithRetry(
-  model: ReturnType<GoogleGenerativeAI["getGenerativeModel"]>,
-  parts: Parameters<ReturnType<GoogleGenerativeAI["getGenerativeModel"]>["generateContent"]>[0],
+// Tries each configured API key in order. Within a key, retries on 429/503
+// with backoff exactly as before; once that key's retries are exhausted (or
+// building its part fails, e.g. a video upload error), moves on to the next
+// key rather than failing outright — the "backup key" failover.
+async function generateContentWithFailover(
+  apiKeys: string[],
+  modelConfig: ModelConfig,
+  buildPart: (apiKey: string) => Promise<ContentPart>,
+  prompt: string,
   statusKey?: string
 ) {
-  for (let attempt = 0; ; attempt++) {
+  let lastErr: unknown;
+
+  for (let keyIndex = 0; keyIndex < apiKeys.length; keyIndex++) {
+    const apiKey = apiKeys[keyIndex];
+    const usingBackup = keyIndex > 0;
+
     try {
-      return await model.generateContent(parts);
+      const part = await buildPart(apiKey);
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel(modelConfig);
+
+      for (let attempt = 0; ; attempt++) {
+        try {
+          return await model.generateContent([part, { text: prompt }]);
+        } catch (err) {
+          lastErr = err;
+          const status = (err as { status?: number })?.status;
+          if (!RETRYABLE_STATUS.includes(status ?? 0) || attempt >= RETRY_DELAYS_MS.length) {
+            break;
+          }
+          if (statusKey) {
+            retryStatusByKey.set(statusKey, {
+              attempt: attempt + 1,
+              maxAttempts: RETRY_DELAYS_MS.length,
+              message: usingBackup
+                ? `خادم Gemini مشغول (المفتاح الاحتياطي)، إعادة المحاولة (${attempt + 1}/${RETRY_DELAYS_MS.length})...`
+                : `خادم Gemini مشغول حالياً، إعادة المحاولة (${attempt + 1}/${RETRY_DELAYS_MS.length})...`,
+            });
+          }
+          await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
+        }
+      }
     } catch (err) {
-      const status = (err as { status?: number })?.status;
-      if (!RETRYABLE_STATUS.includes(status ?? 0) || attempt >= RETRY_DELAYS_MS.length) {
-        throw err;
-      }
-      if (statusKey) {
-        retryStatusByKey.set(statusKey, {
-          attempt: attempt + 1,
-          maxAttempts: RETRY_DELAYS_MS.length,
-          message: `خادم Gemini مشغول حالياً، إعادة المحاولة (${attempt + 1}/${RETRY_DELAYS_MS.length})...`,
-        });
-      }
-      await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
+      lastErr = err;
+    }
+
+    if (keyIndex + 1 < apiKeys.length && statusKey) {
+      retryStatusByKey.set(statusKey, {
+        attempt: 0,
+        maxAttempts: RETRY_DELAYS_MS.length,
+        message: "لا استجابة من المفتاح الأساسي، جارٍ التحويل للمفتاح الاحتياطي...",
+      });
     }
   }
+
+  throw lastErr;
 }
