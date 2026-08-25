@@ -46,7 +46,7 @@ export async function GET(request: Request) {
        JOIN sightings s ON s.id = a.sighting_id
        JOIN boards b ON b.id = s.board_id
        WHERE ${clauses.join(" AND ")}
-       ORDER BY s.captured_date DESC, s.captured_time DESC`
+       ORDER BY a.created_at DESC`
     )
     .all(params);
 
