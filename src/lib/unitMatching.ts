@@ -114,6 +114,44 @@ export function clusterUnitTypes(rawTypes: RawTypeCount[]): UnitCluster[] {
   });
 }
 
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+// Stable-ish public id for a cluster, derived from its display name rather
+// than requiring callers to pass the exact drifting name/name_en string
+// (e.g. "The Guide" vs "The Guide (LED & LCD)" — see module note above,
+// those still cluster separately, but each gets one consistent id instead
+// of only being reachable by a fragile name match). Assigned together for a
+// whole cluster set (not per-cluster in isolation) so that a same-slug
+// collision between two distinct clusters gets a deterministic -2, -3
+// suffix instead of one silently shadowing the other.
+export function assignUnitIds(clusters: UnitCluster[]): Map<UnitCluster, string> {
+  const ordered = [...clusters].sort((a, b) => {
+    const an = a.nameEn || a.nameAr || a.rawTypes[0] || "";
+    const bn = b.nameEn || b.nameAr || b.rawTypes[0] || "";
+    return an.localeCompare(bn) || a.rawTypes.join(",").localeCompare(b.rawTypes.join(","));
+  });
+  const used = new Set<string>();
+  const map = new Map<UnitCluster, string>();
+  for (const cluster of ordered) {
+    const base = slugify(cluster.nameEn || cluster.nameAr || cluster.rawTypes[0] || "") || "unit";
+    let id = base;
+    let n = 2;
+    while (used.has(id)) {
+      id = `${base}-${n}`;
+      n++;
+    }
+    used.add(id);
+    map.set(cluster, id);
+  }
+  return map;
+}
+
 export function findUnitCluster(
   rawTypes: RawTypeCount[],
   name: string,
