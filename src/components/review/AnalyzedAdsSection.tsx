@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import type { AdRow } from "@/lib/reviewTypes";
 import { exportTableToExcel } from "@/lib/exportExcel";
 import Modal from "@/components/Modal";
+import SearchableSelect from "@/components/SearchableSelect";
 import EditAdModal from "./EditAdModal";
 import BulkEditAdsModal from "./BulkEditAdsModal";
 
@@ -15,8 +16,12 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
   const [q, setQ] = useState("");
   const [company, setCompany] = useState("");
   const [sector, setSector] = useState("");
+  const [rasidId, setRasidId] = useState("");
+  const [boardType, setBoardType] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [rasids, setRasids] = useState<{ id: string; full_name: string }[]>([]);
+  const [boardTypes, setBoardTypes] = useState<{ id: string; name: string }[]>([]);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
   const [editingAd, setEditingAd] = useState<AdRow | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -28,12 +33,14 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
     if (q) params.set("q", q);
     if (company) params.set("company", company);
     if (sector) params.set("sector", sector);
+    if (rasidId) params.set("rasid_id", rasidId);
+    if (boardType) params.set("board_type", boardType);
     if (from) params.set("from", from);
     if (to) params.set("to", to);
     fetch(`/api/ads?${params.toString()}`)
       .then((r) => r.json())
       .then((d) => setRows(d.ads || []));
-  }, [q, company, sector, from, to]);
+  }, [q, company, sector, rasidId, boardType, from, to]);
 
   useEffect(() => {
     const t = setTimeout(load, 300);
@@ -46,7 +53,16 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
 
   useEffect(() => {
     setPage(1);
-  }, [q, company, sector, from, to]);
+  }, [q, company, sector, rasidId, boardType, from, to]);
+
+  useEffect(() => {
+    fetch("/api/users?role=rasid")
+      .then((r) => r.json())
+      .then((d) => setRasids(d.users || []));
+    fetch("/api/board-types")
+      .then((r) => r.json())
+      .then((d) => setBoardTypes(d.types || []));
+  }, []);
 
   const companies = Array.from(new Set(rows.map((r) => r.company_name))).sort();
   const sectors = Array.from(new Set(rows.map((r) => r.sector))).sort();
@@ -117,24 +133,36 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3" style={{ marginBottom: 16 }}>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3" style={{ marginBottom: 16 }}>
         <input className="field-input" placeholder="بحث..." value={q} onChange={(e) => setQ(e.target.value)} />
-        <select className="field-input" value={company} onChange={(e) => setCompany(e.target.value)}>
-          <option value="">كل الشركات</option>
-          {companies.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-        <select className="field-input" value={sector} onChange={(e) => setSector(e.target.value)}>
-          <option value="">كل القطاعات</option>
-          {sectors.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect
+          value={company}
+          onChange={setCompany}
+          placeholder="كل الشركات"
+          allLabel="كل الشركات"
+          options={companies.map((c) => ({ value: c, label: c }))}
+        />
+        <SearchableSelect
+          value={sector}
+          onChange={setSector}
+          placeholder="كل القطاعات"
+          allLabel="كل القطاعات"
+          options={sectors.map((s) => ({ value: s, label: s }))}
+        />
+        <SearchableSelect
+          value={rasidId}
+          onChange={setRasidId}
+          placeholder="كل الراصدين"
+          allLabel="كل الراصدين"
+          options={rasids.map((r) => ({ value: r.id, label: r.full_name }))}
+        />
+        <SearchableSelect
+          value={boardType}
+          onChange={setBoardType}
+          placeholder="كل الأنواع"
+          allLabel="كل الأنواع"
+          options={boardTypes.map((t) => ({ value: t.name, label: t.name }))}
+        />
         <input className="field-input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
         <input className="field-input" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
       </div>

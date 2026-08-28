@@ -12,6 +12,8 @@ export async function GET(request: Request) {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
   const sector = searchParams.get("sector")?.trim();
+  const rasidId = searchParams.get("rasid_id")?.trim();
+  const boardType = searchParams.get("board_type")?.trim();
 
   const db = getDb();
   const clauses = ["s.status = 'analyzed'"];
@@ -36,6 +38,14 @@ export async function GET(request: Request) {
   if (to) {
     clauses.push("s.captured_date <= @to");
     params.to = to;
+  }
+  if (rasidId) {
+    clauses.push("s.rasid_id = @rasidId");
+    params.rasidId = rasidId;
+  }
+  if (boardType) {
+    clauses.push("b.type = @boardType");
+    params.boardType = boardType;
   }
 
   const rows = db

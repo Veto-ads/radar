@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import type { SightingRow } from "@/lib/reviewTypes";
 import type { GeminiAd } from "@/lib/gemini";
 import Modal from "@/components/Modal";
+import SearchableSelect from "@/components/SearchableSelect";
 import VideoModal from "./VideoModal";
 import EditSightingModal from "./EditSightingModal";
 import AnalyzeResultModal from "./AnalyzeResultModal";
@@ -21,11 +22,13 @@ const PAGE_SIZE = 10;
 export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void }) {
   const [rows, setRows] = useState<SightingRow[]>([]);
   const [rasids, setRasids] = useState<{ id: string; full_name: string }[]>([]);
+  const [boardTypes, setBoardTypes] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [rasidId, setRasidId] = useState("");
+  const [boardType, setBoardType] = useState("");
   const [videoModal, setVideoModal] = useState<string | null>(null);
   const [imageModal, setImageModal] = useState<string | null>(null);
   const [editModal, setEditModal] = useState<SightingRow | null>(null);
@@ -53,16 +56,20 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
     if (from) params.set("from", from);
     if (to) params.set("to", to);
     if (rasidId) params.set("rasid_id", rasidId);
+    if (boardType) params.set("board_type", boardType);
     fetch(`/api/sightings?${params.toString()}`)
       .then((r) => r.json())
       .then((d) => setRows(d.sightings || []))
       .finally(() => setLoading(false));
-  }, [q, from, to, rasidId]);
+  }, [q, from, to, rasidId, boardType]);
 
   useEffect(() => {
     fetch("/api/users?role=rasid")
       .then((r) => r.json())
       .then((d) => setRasids(d.users || []));
+    fetch("/api/board-types")
+      .then((r) => r.json())
+      .then((d) => setBoardTypes(d.types || []));
   }, []);
 
   useEffect(() => {
@@ -72,7 +79,7 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
 
   useEffect(() => {
     setPage(1);
-  }, [q, from, to, rasidId]);
+  }, [q, from, to, rasidId, boardType]);
 
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   useEffect(() => {
@@ -128,7 +135,7 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3" style={{ marginBottom: 16 }}>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3" style={{ marginBottom: 16 }}>
         <input
           className="field-input"
           placeholder="بحث بالكود أو اللوحة أو الراصد..."
@@ -137,14 +144,20 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
         />
         <input className="field-input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
         <input className="field-input" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        <select className="field-input" value={rasidId} onChange={(e) => setRasidId(e.target.value)}>
-          <option value="">كل الراصدين</option>
-          {rasids.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.full_name}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect
+          value={rasidId}
+          onChange={setRasidId}
+          placeholder="كل الراصدين"
+          allLabel="كل الراصدين"
+          options={rasids.map((r) => ({ value: r.id, label: r.full_name }))}
+        />
+        <SearchableSelect
+          value={boardType}
+          onChange={setBoardType}
+          placeholder="كل الأنواع"
+          allLabel="كل الأنواع"
+          options={boardTypes.map((t) => ({ value: t.name, label: t.name }))}
+        />
       </div>
 
       {error && <p style={{ color: "var(--danger-500)", fontSize: 13, marginBottom: 8 }}>{error}</p>}

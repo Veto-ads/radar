@@ -19,6 +19,7 @@ export async function GET(request: Request) {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
   const rasidId = searchParams.get("rasid_id");
+  const boardType = searchParams.get("board_type");
   const status = searchParams.get("status") || "active"; // active = pending+analyzed
 
   const db = getDb();
@@ -49,6 +50,10 @@ export async function GET(request: Request) {
   if (rasidId) {
     clauses.push("s.rasid_id = @rasidId");
     params.rasidId = rasidId;
+  }
+  if (boardType) {
+    clauses.push("b.type = @boardType");
+    params.boardType = boardType;
   }
 
   const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
