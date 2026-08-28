@@ -114,12 +114,29 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
     <div className="card" style={{ padding: 24 }}>
       <div className="flex items-center justify-between flex-wrap gap-3" style={{ marginBottom: 16 }}>
         <h2 style={{ font: "var(--text-subtitle)", color: "var(--text-heading)" }}>الإعلانات المحلَّلة</h2>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {selected.size > 0 && (
             <button onClick={() => setBulkEditOpen(true)} className="btn-primary" style={{ padding: "8px 14px" }}>
               تعديل الكل ({selected.size})
             </button>
           )}
+          <div className="flex items-center gap-2" style={{ flexWrap: "nowrap" }}>
+            <input
+              className="field-input"
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              style={{ width: 150 }}
+            />
+            <span style={{ color: "var(--text-muted)" }}>إلى</span>
+            <input
+              className="field-input"
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              style={{ width: 150 }}
+            />
+          </div>
           <button
             onClick={() => setView(view === "table" ? "grid" : "table")}
             className="btn-secondary"
@@ -133,7 +150,7 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3" style={{ marginBottom: 16 }}>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3" style={{ marginBottom: 16 }}>
         <input className="field-input" placeholder="بحث..." value={q} onChange={(e) => setQ(e.target.value)} />
         <SearchableSelect
           value={company}
@@ -163,8 +180,6 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
           allLabel="كل الأنواع"
           options={boardTypes.map((t) => ({ value: t.name, label: t.name }))}
         />
-        <input className="field-input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-        <input className="field-input" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
       </div>
 
       {view === "table" ? (

@@ -125,7 +125,24 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
     <div className="card" style={{ padding: 24 }}>
       <div className="flex items-center justify-between flex-wrap gap-3" style={{ marginBottom: 16 }}>
         <h2 style={{ font: "var(--text-subtitle)", color: "var(--text-heading)" }}>طلبات الرصد</h2>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2" style={{ flexWrap: "nowrap" }}>
+            <input
+              className="field-input"
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              style={{ width: 150 }}
+            />
+            <span style={{ color: "var(--text-muted)" }}>إلى</span>
+            <input
+              className="field-input"
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              style={{ width: 150 }}
+            />
+          </div>
           <button onClick={() => setPreviewOpen(true)} className="btn-secondary" style={{ padding: "8px 14px" }}>
             معاينة المقاطع
           </button>
@@ -135,15 +152,13 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3" style={{ marginBottom: 16 }}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3" style={{ marginBottom: 16 }}>
         <input
           className="field-input"
           placeholder="بحث بالكود أو اللوحة أو الراصد..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-        <input className="field-input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-        <input className="field-input" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         <SearchableSelect
           value={rasidId}
           onChange={setRasidId}

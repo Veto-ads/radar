@@ -41,9 +41,23 @@ export default function RasidStatsSection() {
       <div className="flex items-center justify-between flex-wrap gap-3" style={{ marginBottom: 16 }}>
         <h2 style={{ font: "var(--text-subtitle)", color: "var(--text-heading)" }}>إحصائيات الراصدين</h2>
         <div className="flex items-center gap-2 flex-wrap">
-          <input className="field-input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          <span style={{ color: "var(--text-muted)" }}>إلى</span>
-          <input className="field-input" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          <div className="flex items-center gap-2" style={{ flexWrap: "nowrap" }}>
+            <input
+              className="field-input"
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              style={{ width: 150 }}
+            />
+            <span style={{ color: "var(--text-muted)" }}>إلى</span>
+            <input
+              className="field-input"
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              style={{ width: 150 }}
+            />
+          </div>
           <button onClick={doExport} className="btn-primary" style={{ padding: "8px 14px" }}>
             تصدير Excel
           </button>
