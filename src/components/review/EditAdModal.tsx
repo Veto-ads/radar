@@ -240,7 +240,7 @@ export default function EditAdModal({
           <p style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)", marginBottom: 6 }}>
             اللوحة الحالية: <strong>{ad.board_name}</strong>
           </p>
-          <BoardCombobox onSelect={setNewBoard} />
+          <BoardCombobox value={newBoard} onSelect={setNewBoard} />
           <p style={{ fontSize: "var(--fs-caption)", color: "var(--text-muted)", marginTop: 4 }}>
             اختر لوحة فقط إذا أردت تغييرها — سيؤثر ذلك على كل الإعلانات المرتبطة بنفس الرصد ({ad.sighting_code})
           </p>

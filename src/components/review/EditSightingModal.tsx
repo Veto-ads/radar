@@ -40,7 +40,7 @@ export default function EditSightingModal({
         <p style={{ fontSize: "var(--fs-xs)", color: "var(--text-muted)" }}>
           اللوحة الحالية: {sighting.board_name}
         </p>
-        <BoardCombobox onSelect={setBoard} />
+        <BoardCombobox value={board} onSelect={setBoard} />
         <button
           disabled={!board || saving}
           onClick={save}
