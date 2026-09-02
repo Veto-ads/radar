@@ -7,6 +7,7 @@ import Modal from "@/components/Modal";
 import SearchableSelect from "@/components/SearchableSelect";
 import EditAdModal from "./EditAdModal";
 import BulkEditAdsModal from "./BulkEditAdsModal";
+import { adImageFileName } from "./adImageClient";
 
 const PAGE_SIZE = 10;
 
@@ -22,7 +23,7 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
   const [to, setTo] = useState("");
   const [rasids, setRasids] = useState<{ id: string; full_name: string }[]>([]);
   const [boardTypes, setBoardTypes] = useState<{ id: string; name: string }[]>([]);
-  const [zoomImage, setZoomImage] = useState<string | null>(null);
+  const [zoomAd, setZoomAd] = useState<AdRow | null>(null);
   const [editingAd, setEditingAd] = useState<AdRow | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
@@ -82,6 +83,10 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
     });
   }
 
+  function toggleAllFiltered() {
+    setSelected((prev) => (prev.size === rows.length ? new Set() : new Set(rows.map((r) => r.id))));
+  }
+
   function toggleAll() {
     setSelected((prev) => {
       const pageIds = pageRows.map((r) => r.id);
@@ -115,6 +120,11 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
       <div className="flex items-center justify-between flex-wrap gap-3" style={{ marginBottom: 16 }}>
         <h2 style={{ font: "var(--text-subtitle)", color: "var(--text-heading)" }}>الإعلانات المحلَّلة</h2>
         <div className="flex items-center gap-2 flex-wrap">
+          {rows.length > 0 && (
+            <button onClick={toggleAllFiltered} className="btn-secondary" style={{ padding: "8px 14px" }}>
+              {selected.size === rows.length ? "إلغاء التحديد" : `تحديد كل النتائج (${rows.length})`}
+            </button>
+          )}
           {selected.size > 0 && (
             <button onClick={() => setBulkEditOpen(true)} className="btn-primary" style={{ padding: "8px 14px" }}>
               تعديل الكل ({selected.size})
@@ -225,7 +235,7 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
                       <img
                         src={r.frame_image_url}
                         alt={r.company_name}
-                        onClick={() => setZoomImage(r.frame_image_url)}
+                        onClick={() => setZoomAd(r)}
                         style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 4, cursor: "pointer" }}
                       />
                     )}
@@ -266,7 +276,7 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
                 <img
                   src={r.frame_image_url}
                   alt={r.company_name}
-                  onClick={() => setZoomImage(r.frame_image_url)}
+                  onClick={() => setZoomAd(r)}
                   style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: "var(--radius-sm)", cursor: "pointer" }}
                 />
               )}
@@ -315,10 +325,37 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
         </div>
       )}
 
-      {zoomImage && (
-        <Modal title="صورة الإعلان" onClose={() => setZoomImage(null)} width={640}>
+      {zoomAd?.frame_image_url && (
+        <Modal title={`صورة الإعلان — ${zoomAd.company_name}`} onClose={() => setZoomAd(null)} width={640}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={zoomImage} alt="" style={{ width: "100%", borderRadius: "var(--radius-md)" }} />
+          <img
+            src={zoomAd.frame_image_url}
+            alt={zoomAd.company_name}
+            style={{ width: "100%", borderRadius: "var(--radius-md)" }}
+          />
+          <div className="flex gap-2" style={{ marginTop: 12 }}>
+            <a
+              href={zoomAd.frame_image_url}
+              download={adImageFileName(
+                zoomAd.frame_image_url,
+                `${zoomAd.sighting_code}-${zoomAd.company_name}`
+              )}
+              className="btn-primary"
+              style={{ padding: "8px 16px", textDecoration: "none" }}
+            >
+              حفظ الصورة
+            </a>
+            <button
+              onClick={() => {
+                setEditingAd(zoomAd);
+                setZoomAd(null);
+              }}
+              className="btn-secondary"
+              style={{ padding: "8px 16px" }}
+            >
+              تعديل الصورة
+            </button>
+          </div>
         </Modal>
       )}
       {editingAd && (
