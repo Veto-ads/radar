@@ -23,6 +23,8 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
   const [to, setTo] = useState("");
   const [rasids, setRasids] = useState<{ id: string; full_name: string }[]>([]);
   const [boardTypes, setBoardTypes] = useState<{ id: string; name: string }[]>([]);
+  const [companies, setCompanies] = useState<string[]>([]);
+  const [sectors, setSectors] = useState<string[]>([]);
   const [zoomAd, setZoomAd] = useState<AdRow | null>(null);
   const [editingAd, setEditingAd] = useState<AdRow | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -56,6 +58,10 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
     setPage(1);
   }, [q, company, sector, rasidId, boardType, from, to]);
 
+  // Filter options come from the full catalogue, not from the rows currently on
+  // screen: deriving them from the results collapsed each list down to whatever
+  // the active filter had already matched, so picking a different company or
+  // sector was impossible without reloading the page first.
   useEffect(() => {
     fetch("/api/users?role=rasid")
       .then((r) => r.json())
@@ -63,10 +69,34 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
     fetch("/api/board-types")
       .then((r) => r.json())
       .then((d) => setBoardTypes(d.types || []));
-  }, []);
+    fetch("/api/companies")
+      .then((r) => r.json())
+      .then((d) => setCompanies((d.companies || []).map((c: { name: string }) => c.name)));
+    fetch("/api/sectors")
+      .then((r) => r.json())
+      .then((d) => setSectors((d.sectors || []).map((s: { name: string }) => s.name)));
+  }, [refreshKey]);
 
-  const companies = Array.from(new Set(rows.map((r) => r.company_name))).sort();
-  const sectors = Array.from(new Set(rows.map((r) => r.sector))).sort();
+  // Sector/company names on ads are free text, so keep anything that shows up in
+  // the results but is missing from the catalogue endpoints.
+  const companyOptions = Array.from(new Set([...companies, ...rows.map((r) => r.company_name)]))
+    .filter(Boolean)
+    .sort();
+  const sectorOptions = Array.from(new Set([...sectors, ...rows.map((r) => r.sector)]))
+    .filter(Boolean)
+    .sort();
+
+  const hasFilters = Boolean(q || company || sector || rasidId || boardType || from || to);
+
+  function resetFilters() {
+    setQ("");
+    setCompany("");
+    setSector("");
+    setRasidId("");
+    setBoardType("");
+    setFrom("");
+    setTo("");
+  }
 
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   useEffect(() => {
@@ -167,14 +197,14 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
           onChange={setCompany}
           placeholder="كل الشركات"
           allLabel="كل الشركات"
-          options={companies.map((c) => ({ value: c, label: c }))}
+          options={companyOptions.map((c) => ({ value: c, label: c }))}
         />
         <SearchableSelect
           value={sector}
           onChange={setSector}
           placeholder="كل القطاعات"
           allLabel="كل القطاعات"
-          options={sectors.map((s) => ({ value: s, label: s }))}
+          options={sectorOptions.map((s) => ({ value: s, label: s }))}
         />
         <SearchableSelect
           value={rasidId}
@@ -191,6 +221,17 @@ export default function AnalyzedAdsSection({ refreshKey }: { refreshKey: number 
           options={boardTypes.map((t) => ({ value: t.name, label: t.name }))}
         />
       </div>
+
+      {hasFilters && (
+        <div className="flex items-center gap-2 flex-wrap" style={{ marginBottom: 16 }}>
+          <span style={{ fontSize: "var(--fs-caption)", color: "var(--text-muted)" }}>
+            النتائج: {rows.length}
+          </span>
+          <button onClick={resetFilters} className="btn-secondary" style={{ padding: "6px 12px" }}>
+            مسح كل الفلاتر
+          </button>
+        </div>
+      )}
 
       {view === "table" ? (
         <div style={{ overflowX: "auto" }}>

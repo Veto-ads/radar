@@ -81,6 +81,16 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
     setPage(1);
   }, [q, from, to, rasidId, boardType]);
 
+  const hasFilters = Boolean(q || from || to || rasidId || boardType);
+
+  function resetFilters() {
+    setQ("");
+    setFrom("");
+    setTo("");
+    setRasidId("");
+    setBoardType("");
+  }
+
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   useEffect(() => {
     if (page > pageCount) setPage(pageCount);
@@ -174,6 +184,17 @@ export default function RequestsSection({ onAnalyzed }: { onAnalyzed: () => void
           options={boardTypes.map((t) => ({ value: t.name, label: t.name }))}
         />
       </div>
+
+      {hasFilters && (
+        <div className="flex items-center gap-2 flex-wrap" style={{ marginBottom: 16 }}>
+          <span style={{ fontSize: "var(--fs-caption)", color: "var(--text-muted)" }}>
+            النتائج: {rows.length}
+          </span>
+          <button onClick={resetFilters} className="btn-secondary" style={{ padding: "6px 12px" }}>
+            مسح كل الفلاتر
+          </button>
+        </div>
+      )}
 
       {error && <p style={{ color: "var(--danger-500)", fontSize: 13, marginBottom: 8 }}>{error}</p>}
 

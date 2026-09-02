@@ -106,7 +106,7 @@ export default function UploadPage() {
         </p>
 
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
-          <BoardCombobox onSelect={setBoard} />
+          <BoardCombobox value={board} onSelect={setBoard} />
 
           <div className="grid grid-cols-2 gap-4">
             <div>
