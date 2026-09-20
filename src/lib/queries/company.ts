@@ -1,5 +1,5 @@
 import { getDb } from "@/lib/db";
-import { spendAmountsByType, type BoardSpendRow } from "@/lib/billing";
+import { spendAmountsByType, applyMultiTypeDiscount, type BoardSpendRow } from "@/lib/billing";
 import { tallyStreets } from "@/lib/streets";
 
 export function getCompanyStats(name: string, from: string, to: string) {
@@ -59,7 +59,7 @@ export function getCompanyStats(name: string, from: string, to: string) {
     .all(params) as BoardSpendRow[];
 
   const typeAmounts = spendAmountsByType(spendRows);
-  const spendingTotal = typeAmounts.reduce((sum, a) => sum + a, 0);
+  const spendingTotal = applyMultiTypeDiscount(typeAmounts);
   const spendingAvg = typeAmounts.length ? spendingTotal / typeAmounts.length : 0;
 
   const streetsRows = db

@@ -1,5 +1,5 @@
 import { getDb } from "@/lib/db";
-import { spendAmountsByType } from "@/lib/billing";
+import { spendAmountsByType, applyMultiTypeDiscount } from "@/lib/billing";
 
 type Row = {
   entity: string;
@@ -9,7 +9,11 @@ type Row = {
   captured_date: string;
 };
 
-function aggregateSpend(rows: Row[]): { entity: string; amount: number }[] {
+// `applyDiscount` is only meaningful for the company breakdown — the
+// multi-type package discount is a per-company deal ("a company booking 2+
+// board types gets 20% off"), not a property of a sector (which naturally
+// spans many companies and types), so the sector breakdown never applies it.
+function aggregateSpend(rows: Row[], applyDiscount: boolean): { entity: string; amount: number }[] {
   const byEntity = new Map<string, Row[]>();
   for (const r of rows) {
     const list = byEntity.get(r.entity);
@@ -17,10 +21,13 @@ function aggregateSpend(rows: Row[]): { entity: string; amount: number }[] {
     else byEntity.set(r.entity, [r]);
   }
 
-  const totals = Array.from(byEntity, ([entity, entityRows]) => ({
-    entity,
-    amount: spendAmountsByType(entityRows).reduce((sum, a) => sum + a, 0),
-  }));
+  const totals = Array.from(byEntity, ([entity, entityRows]) => {
+    const typeAmounts = spendAmountsByType(entityRows);
+    const amount = applyDiscount
+      ? applyMultiTypeDiscount(typeAmounts)
+      : typeAmounts.reduce((sum, a) => sum + a, 0);
+    return { entity, amount };
+  });
 
   return totals.sort((a, b) => b.amount - a.amount);
 }
@@ -47,10 +54,10 @@ export function getSpendingStats(from: string, to: string) {
     )
     .all(params) as Row[];
 
-  const byCompany = aggregateSpend(companyRows)
+  const byCompany = aggregateSpend(companyRows, true)
     .slice(0, 10)
     .map((r) => ({ company: r.entity, amount: r.amount }));
-  const bySector = aggregateSpend(sectorRows)
+  const bySector = aggregateSpend(sectorRows, false)
     .slice(0, 10)
     .map((r) => ({ sector: r.entity, amount: r.amount }));
 

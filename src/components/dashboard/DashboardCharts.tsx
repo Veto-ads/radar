@@ -22,7 +22,7 @@ type DashboardData = {
   sectorsDist: { sector: string; count: number }[];
   sectorByMedia: { sector: string; board_type: string; count: number }[];
   topSectors: { sector: string; count: number }[];
-  topRepeatedAds: { company: string; board: string; repeats_per_day: number }[];
+  topRepeatedAds: { company: string; board_type: string; repeats_per_day: number }[];
   trend: { date: string; count: number }[];
   topCompanies: { company: string; count: number }[];
   companiesBySector: { sector: string; company: string; count: number }[];
@@ -100,15 +100,12 @@ export default function DashboardCharts({ data }: { data: DashboardData }) {
     options: { plugins: { legend: { display: false } } },
   };
 
-  // RankedShareList keys rows by label — dedupe same company/board pairs
-  // (re-analysis can leave more than one) rather than letting them collide.
-  // topRepeatedAds is already ordered DESC, so the first occurrence kept is
-  // the highest one.
-  const topRepeatedRanked = Array.from(
-    new Map(
-      data.topRepeatedAds.map((a) => [`${a.company} — ${a.board}`, a.repeats_per_day])
-    )
-  ).map(([label, count]) => ({ label, count }));
+  // topRepeatedAds rows are already unique per (company, board_type) —
+  // the backend groups by that pair, so no client-side dedupe is needed here.
+  const topRepeatedRanked = data.topRepeatedAds.map((a) => ({
+    label: `${a.company} — ${a.board_type}`,
+    count: a.repeats_per_day,
+  }));
 
   const trendCfg: ChartConfiguration = {
     type: "line",
