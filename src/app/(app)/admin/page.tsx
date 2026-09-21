@@ -15,6 +15,7 @@ export default function AdminPage() {
         placeholder="اسم قطاع جديد"
         basePath="/api/sectors"
         listKey="sectors"
+        exportFileName="القطاعات"
       />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <EntityListManager

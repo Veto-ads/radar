@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { exportTableToExcel } from "@/lib/exportExcel";
 
 type Entity = { id: string; name: string };
 
@@ -9,11 +10,14 @@ export default function EntityListManager({
   placeholder,
   basePath,
   listKey,
+  exportFileName,
 }: {
   title: string;
   placeholder: string;
   basePath: string;
   listKey: string;
+  // When set, the header shows an Excel export button for the current list.
+  exportFileName?: string;
 }) {
   const [items, setItems] = useState<Entity[]>([]);
   const [newName, setNewName] = useState("");
@@ -62,9 +66,30 @@ export default function EntityListManager({
     load();
   }
 
+  function doExport() {
+    if (!exportFileName) return;
+    exportTableToExcel(
+      exportFileName,
+      ["#", "الاسم"],
+      items.map((s, i) => [i + 1, s.name])
+    );
+  }
+
   return (
     <div className="card" style={{ padding: 24 }}>
-      <h2 style={{ font: "var(--text-subtitle)", color: "var(--text-heading)", marginBottom: 16 }}>{title}</h2>
+      <div className="flex items-center justify-between flex-wrap gap-3" style={{ marginBottom: 16 }}>
+        <h2 style={{ font: "var(--text-subtitle)", color: "var(--text-heading)" }}>{title}</h2>
+        {exportFileName && (
+          <button
+            onClick={doExport}
+            disabled={items.length === 0}
+            className="btn-primary"
+            style={{ padding: "8px 14px" }}
+          >
+            تصدير Excel
+          </button>
+        )}
+      </div>
 
       <div className="flex gap-2" style={{ marginBottom: 16 }}>
         <input

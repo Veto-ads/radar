@@ -8,6 +8,25 @@ export default function ExportDataSection() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [companiesLoading, setCompaniesLoading] = useState(false);
+
+  // Companies aren't managed as their own list — they're the distinct names
+  // that appear on analyzed ads, so that's what gets exported.
+  async function exportCompanies() {
+    setCompaniesLoading(true);
+    try {
+      const res = await fetch("/api/companies");
+      const data = await res.json();
+      const names = ((data.companies || []) as { name: string }[]).map((c) => c.name);
+      exportTableToExcel(
+        "أسماء-الشركات",
+        ["#", "اسم الشركة"],
+        names.map((n, i) => [i + 1, n])
+      );
+    } finally {
+      setCompaniesLoading(false);
+    }
+  }
 
   async function doExport() {
     setLoading(true);
@@ -48,6 +67,14 @@ export default function ExportDataSection() {
         <input className="field-input" type="date" value={to} onChange={(e) => setTo(e.target.value)} style={{ width: 180 }} />
         <button onClick={doExport} disabled={loading} className="btn-primary" style={{ padding: "10px 20px" }}>
           {loading ? "جاري التصدير..." : "تصدير Excel"}
+        </button>
+        <button
+          onClick={exportCompanies}
+          disabled={companiesLoading}
+          className="btn-secondary"
+          style={{ padding: "10px 20px" }}
+        >
+          {companiesLoading ? "جاري التصدير..." : "تصدير أسماء الشركات"}
         </button>
       </div>
     </div>
