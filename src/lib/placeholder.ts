@@ -33,9 +33,9 @@ export async function createSectorFramePlaceholder(
     <text x="160" y="100" font-family="IBM Plex Sans Arabic, sans-serif" font-size="56" fill="white" text-anchor="middle" dominant-baseline="middle">${initial}</text>
   </svg>`;
 
-  const dir = path.join(process.cwd(), "public", "uploads", "frames");
-  await mkdir(dir, { recursive: true });
+  const dir = path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "uploads", "frames");
+  await mkdir(/*turbopackIgnore: true*/ dir, { recursive: true });
   const fileName = `${randomUUID()}.svg`;
-  await writeFile(path.join(dir, fileName), svg, "utf-8");
+  await writeFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ dir, fileName), svg, "utf-8");
   return `/uploads/frames/${fileName}`;
 }

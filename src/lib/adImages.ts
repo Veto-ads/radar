@@ -20,11 +20,16 @@ export function isSupportedAdImageType(type: string): boolean {
   return type in EXTENSION_BY_TYPE;
 }
 
+// The turbopackIgnore markers on process.cwd() below are load-bearing: without
+// them Turbopack's file tracing treats these paths as "anything under public/"
+// and pulls every uploaded video/frame into the route's trace, which is fine
+// with a handful of dev files but makes `next build` on the server balloon to
+// 15GB+ and get OOM-killed.
 export async function saveAdImage(file: File): Promise<string> {
-  const dir = path.join(process.cwd(), "public", "uploads", "ad-images");
-  await mkdir(dir, { recursive: true });
+  const dir = path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "uploads", "ad-images");
+  await mkdir(/*turbopackIgnore: true*/ dir, { recursive: true });
   const fileName = `${randomUUID()}${EXTENSION_BY_TYPE[file.type]}`;
-  await writeFile(path.join(dir, fileName), Buffer.from(await file.arrayBuffer()));
+  await writeFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ dir, fileName), Buffer.from(await file.arrayBuffer()));
   return `/uploads/ad-images/${fileName}`;
 }
 
@@ -38,7 +43,7 @@ export async function deleteAdImageIfUnused(db: Database.Database, url: string |
   const stillUsed = db.prepare("SELECT 1 FROM ads WHERE frame_image_url = ? LIMIT 1").get(url);
   if (stillUsed) return;
   try {
-    await unlink(path.join(process.cwd(), "public", url.replace(/^\//, "")));
+    await unlink(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ process.cwd(), "public", url.replace(/^\//, "")));
   } catch {
     // The row is what matters; a file that is already gone is not an error.
   }

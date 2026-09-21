@@ -111,12 +111,12 @@ export async function POST(request: Request) {
   let videoSize: number | null = null;
   if (hasVideo) {
     const file = videoFile as File;
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", "videos");
-    await mkdir(uploadsDir, { recursive: true });
+    const uploadsDir = path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "uploads", "videos");
+    await mkdir(/*turbopackIgnore: true*/ uploadsDir, { recursive: true });
     const ext = path.extname(file.name) || ".mp4";
     const fileName = `${randomUUID()}${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(path.join(uploadsDir, fileName), buffer);
+    await writeFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ uploadsDir, fileName), buffer);
     videoUrl = `/uploads/videos/${fileName}`;
     videoSize = file.size;
   }
@@ -124,12 +124,12 @@ export async function POST(request: Request) {
   let imageUrl: string | null = null;
   if (hasImage) {
     const file = imageFile as File;
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", "sighting-images");
-    await mkdir(uploadsDir, { recursive: true });
+    const uploadsDir = path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "uploads", "sighting-images");
+    await mkdir(/*turbopackIgnore: true*/ uploadsDir, { recursive: true });
     const ext = path.extname(file.name) || ".jpg";
     const fileName = `${randomUUID()}${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(path.join(uploadsDir, fileName), buffer);
+    await writeFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ uploadsDir, fileName), buffer);
     imageUrl = `/uploads/sighting-images/${fileName}`;
   }
 

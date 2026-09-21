@@ -25,10 +25,10 @@ export async function POST(_request: Request, context: RouteContext<"/api/sighti
   }
 
   const absoluteVideoPath = sighting.video_url
-    ? path.join(process.cwd(), "public", sighting.video_url.replace(/^\//, ""))
+    ? path.join(/*turbopackIgnore: true*/ process.cwd(), "public", sighting.video_url.replace(/^\//, ""))
     : null;
   const absoluteImagePath = sighting.image_url
-    ? path.join(process.cwd(), "public", sighting.image_url.replace(/^\//, ""))
+    ? path.join(/*turbopackIgnore: true*/ process.cwd(), "public", sighting.image_url.replace(/^\//, ""))
     : null;
 
   let ads;

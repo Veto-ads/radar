@@ -30,10 +30,10 @@ export async function captureVideoFrame(
   absoluteVideoPath: string,
   timestampSeconds: number
 ): Promise<string> {
-  const dir = path.join(process.cwd(), "public", "uploads", "frames");
-  await mkdir(dir, { recursive: true });
+  const dir = path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "uploads", "frames");
+  await mkdir(/*turbopackIgnore: true*/ dir, { recursive: true });
   const fileName = `${randomUUID()}.jpg`;
-  const outputPath = path.join(dir, fileName);
+  const outputPath = path.join(/*turbopackIgnore: true*/ dir, fileName);
   const safeTimestamp = Math.max(0, timestampSeconds || 0);
 
   await runFfmpeg([

@@ -139,7 +139,7 @@ export async function analyzeSightingVideo(
 ): Promise<GeminiAd[]> {
   const apiKeys = getApiKeys();
   const mimeType = mimeTypeFromExt(absoluteVideoPath);
-  const stat = await import("node:fs/promises").then((fs) => fs.stat(absoluteVideoPath));
+  const stat = await import("node:fs/promises").then((fs) => fs.stat(/*turbopackIgnore: true*/ absoluteVideoPath));
 
   // A File API upload (large videos) is scoped to the key/project that
   // created it, so falling back to the backup key means re-uploading under
@@ -160,7 +160,7 @@ export async function analyzeSightingVideo(
       }
       return { fileData: { fileUri: file.uri, mimeType } };
     }
-    const buffer = await readFile(absoluteVideoPath);
+    const buffer = await readFile(/*turbopackIgnore: true*/ absoluteVideoPath);
     return { inlineData: { data: buffer.toString("base64"), mimeType } };
   };
 
@@ -188,7 +188,7 @@ export async function analyzeSightingImage(
 ): Promise<GeminiAd[]> {
   const apiKeys = getApiKeys();
   const mimeType = mimeTypeFromImageExt(absoluteImagePath);
-  const buffer = await readFile(absoluteImagePath);
+  const buffer = await readFile(/*turbopackIgnore: true*/ absoluteImagePath);
   const inlinePart: ContentPart = { inlineData: { data: buffer.toString("base64"), mimeType } };
   const buildPart = async () => inlinePart;
 
