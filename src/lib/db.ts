@@ -183,17 +183,33 @@ function init(db: Database.Database) {
 
   // Older rows stored the English slugs the app used to render before board types
   // and categories became admin-editable free-text lists — bring them in line.
-  const legacyTypeMap: Record<string, string> = {
-    unipole: "يونيبول",
-    billboard: "لوحة",
-    "digital-screen": "شاشة رقمية",
-    "indoor-screen": "شاشة داخلية",
-  };
-  const legacyCategoryMap: Record<string, string> = { outdoor: "خارجي", indoor: "داخلي" };
-  const updateType = db.prepare("UPDATE boards SET type = ? WHERE type = ?");
-  const updateCategory = db.prepare("UPDATE boards SET category = ? WHERE category = ?");
-  for (const [oldVal, newVal] of Object.entries(legacyTypeMap)) updateType.run(newVal, oldVal);
-  for (const [oldVal, newVal] of Object.entries(legacyCategoryMap)) updateCategory.run(newVal, oldVal);
+  // This must run only once, and must never touch a value the admin has since
+  // defined on purpose: it used to run on every startup, so a board the admin
+  // set to a category literally named "indoor" was silently rewritten to "داخلي"
+  // on the next restart/deploy and the edit appeared not to stick.
+  const legacyDone = db.prepare("SELECT 1 FROM settings WHERE key = 'legacy_slugs_migrated'").get();
+  if (!legacyDone) {
+    const legacyTypeMap: Record<string, string> = {
+      unipole: "يونيبول",
+      billboard: "لوحة",
+      "digital-screen": "شاشة رقمية",
+      "indoor-screen": "شاشة داخلية",
+    };
+    const legacyCategoryMap: Record<string, string> = { outdoor: "خارجي", indoor: "داخلي" };
+    const typeNames = new Set((db.prepare("SELECT name FROM board_types").all() as { name: string }[]).map((r) => r.name));
+    const categoryNames = new Set(
+      (db.prepare("SELECT name FROM board_categories").all() as { name: string }[]).map((r) => r.name)
+    );
+    const updateType = db.prepare("UPDATE boards SET type = ? WHERE type = ?");
+    const updateCategory = db.prepare("UPDATE boards SET category = ? WHERE category = ?");
+    for (const [oldVal, newVal] of Object.entries(legacyTypeMap)) {
+      if (!typeNames.has(oldVal)) updateType.run(newVal, oldVal);
+    }
+    for (const [oldVal, newVal] of Object.entries(legacyCategoryMap)) {
+      if (!categoryNames.has(oldVal)) updateCategory.run(newVal, oldVal);
+    }
+    db.prepare("INSERT INTO settings (key, value) VALUES ('legacy_slugs_migrated', '1')").run();
+  }
 
   const userCount = db.prepare("SELECT COUNT(*) as c FROM users").get() as { c: number };
   if (userCount.c === 0) {

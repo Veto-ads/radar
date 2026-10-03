@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Board } from "@/lib/types";
+import SearchableSelect from "@/components/SearchableSelect";
 import BoardModal from "./BoardModal";
 import ImportBoardsModal from "./ImportBoardsModal";
 import { exportBoardsToExcel } from "@/lib/boardExcel";
@@ -50,6 +51,8 @@ export default function BoardsCatalog() {
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
+  const [category, setCategory] = useState("");
+  const [categoryNames, setCategoryNames] = useState<string[]>([]);
 
   function load() {
     fetch("/api/boards")
@@ -60,14 +63,26 @@ export default function BoardsCatalog() {
   useEffect(load, []);
 
   useEffect(() => {
+    fetch("/api/board-categories")
+      .then((r) => r.json())
+      .then((d) => setCategoryNames((d.categories || []).map((c: { name: string }) => c.name)));
+  }, []);
+
+  // The managed list plus any category a board still carries that is not in it.
+  const categoryOptions = Array.from(new Set([...categoryNames, ...boards.map((b) => b.category)]))
+    .filter(Boolean)
+    .sort();
+
+  useEffect(() => {
     setSelected(new Set());
   }, [boards]);
 
   useEffect(() => {
     setPage(1);
-  }, [q]);
+  }, [q, category]);
 
   const filteredBoards = boards.filter((b) => {
+    if (category && b.category !== category) return false;
     const needle = q.trim().toLowerCase();
     if (!needle) return true;
     const streets = ((b.streets as unknown as string[]) || []).join(" ");
@@ -162,13 +177,21 @@ export default function BoardsCatalog() {
 
       {error && <p style={{ color: "var(--danger-500)", fontSize: 13, marginBottom: 12 }}>{error}</p>}
 
-      <input
-        className="field-input"
-        placeholder="ابحث عن لوحة بالاسم أو المدينة أو النوع أو الشركة أو الشارع..."
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        style={{ marginBottom: 16 }}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3" style={{ marginBottom: 16 }}>
+        <input
+          className="field-input md:col-span-2"
+          placeholder="ابحث عن لوحة بالاسم أو المدينة أو النوع أو الشركة أو الشارع..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <SearchableSelect
+          value={category}
+          onChange={setCategory}
+          placeholder="كل التصنيفات"
+          allLabel="كل التصنيفات"
+          options={categoryOptions.map((c) => ({ value: c, label: c }))}
+        />
+      </div>
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--fs-xs)" }}>
