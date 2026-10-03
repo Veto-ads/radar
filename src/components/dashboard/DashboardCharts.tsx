@@ -22,7 +22,7 @@ type DashboardData = {
   sectorsDist: { sector: string; count: number }[];
   sectorByMedia: { sector: string; board_type: string; count: number }[];
   topSectors: { sector: string; count: number }[];
-  topRepeatedAds: { company: string; board_type: string; repeats_per_day: number }[];
+  topRepeatedAds: { company: string; board_types: string[]; total_faces: number }[];
   trend: { date: string; count: number }[];
   topCompanies: { company: string; count: number }[];
   companiesBySector: { sector: string; company: string; count: number }[];
@@ -100,11 +100,11 @@ export default function DashboardCharts({ data }: { data: DashboardData }) {
     options: { plugins: { legend: { display: false } } },
   };
 
-  // topRepeatedAds rows are already unique per (company, board_type) —
-  // the backend groups by that pair, so no client-side dedupe is needed here.
+  // One row per company (unique by construction): the score is the total
+  // faces of every board type it appeared on, and the label lists those types.
   const topRepeatedRanked = data.topRepeatedAds.map((a) => ({
-    label: `${a.company} — ${a.board_type}`,
-    count: a.repeats_per_day,
+    label: `${a.company} — ${a.board_types.join(" + ")}`,
+    count: a.total_faces,
   }));
 
   const trendCfg: ChartConfiguration = {

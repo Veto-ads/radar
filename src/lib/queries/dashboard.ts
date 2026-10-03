@@ -52,14 +52,14 @@ export function getDashboardStats(from: string, to: string, category: string) {
     )
     .all(params);
 
-  // Backs "أكثر الإعلانات تكراراً" and "أكثر الشركات إعلاناً": repeats_per_day
+  // Backs "أكثر الشركات إعلاناً" (and its sector-filtered variant): repeats_per_day
   // is the AI's per-video estimate of how many times an ad plays per day on
   // one screen, so re-analysis/re-sightings of the same company on the same
   // board type within one rental window (14 days by default, or the board's
   // own price_duration_days) must not be summed as if they were separate
-  // repeats — see repeatsAmountsByType in billing.ts. One query backs both
-  // tiles (and the sector-filtered variant) by grouping the same rows
-  // differently in JS.
+  // repeats — see repeatsAmountsByType in billing.ts.
+  // "أكثر الإعلانات تكراراً" is derived from the same rows but ranks by media
+  // diversity instead (see below).
   type RepeatSourceRow = {
     company: string;
     sector: string;
@@ -94,10 +94,41 @@ export function getDashboardStats(from: string, to: string, category: string) {
     }));
   }
 
-  const topRepeatedAds = groupRepeatsByKey((r) => [r.company, r.board_type])
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 10)
-    .map(({ key, total }) => ({ company: key[0], board_type: key[1], repeats_per_day: total }));
+  // "أكثر الإعلانات تكراراً" ranks companies by how widely they are spread
+  // across the board catalogue, not by how often they were sighted: for every
+  // board type a company appeared on, it earns that type's total number of
+  // faces (sum of boards.faces for every board of the type, honouring the
+  // dashboard's category filter), and each type counts once however many
+  // times it was sighted. E.g. a company on "Digital Mezahpole" and "Digital
+  // Mupis" scores faces(Digital Mezahpole) + faces(Digital Mupis).
+  const facesByType = new Map(
+    (
+      db
+        .prepare(
+          `SELECT b.type as type, COALESCE(SUM(b.faces), 0) as faces
+           FROM boards b WHERE 1=1 ${catClause} GROUP BY b.type`
+        )
+        .all({ category }) as { type: string; faces: number }[]
+    ).map((r) => [r.type, r.faces])
+  );
+
+  const typesByCompany = new Map<string, Set<string>>();
+  for (const r of repeatSourceRows) {
+    const set = typesByCompany.get(r.company);
+    if (set) set.add(r.board_type);
+    else typesByCompany.set(r.company, new Set([r.board_type]));
+  }
+
+  const topRepeatedAds = Array.from(typesByCompany, ([company, types]) => {
+    const boardTypes = Array.from(types).sort();
+    return {
+      company,
+      board_types: boardTypes,
+      total_faces: boardTypes.reduce((sum, t) => sum + (facesByType.get(t) || 0), 0),
+    };
+  })
+    .sort((a, b) => b.total_faces - a.total_faces || b.board_types.length - a.board_types.length)
+    .slice(0, 10);
 
   const trend = db
     .prepare(
