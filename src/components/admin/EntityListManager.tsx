@@ -24,6 +24,7 @@ export default function EntityListManager({
   const [editing, setEditing] = useState<Entity | null>(null);
   const [editName, setEditName] = useState("");
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
   function load() {
     fetch(basePath)
@@ -66,6 +67,12 @@ export default function EntityListManager({
     load();
   }
 
+  // An item being edited stays visible even if the search no longer matches it.
+  const needle = search.trim().toLowerCase();
+  const visibleItems = needle
+    ? items.filter((s) => s.name.toLowerCase().includes(needle) || editing?.id === s.id)
+    : items;
+
   function doExport() {
     if (!exportFileName) return;
     exportTableToExcel(
@@ -105,8 +112,37 @@ export default function EntityListManager({
       </div>
       {error && <p style={{ color: "var(--danger-500)", fontSize: 13, marginBottom: 8 }}>{error}</p>}
 
+      <div style={{ position: "relative", marginBottom: 16 }}>
+        <input
+          className="field-input"
+          placeholder="بحث في القائمة..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={search ? { paddingInlineStart: 32 } : undefined}
+        />
+        {search && (
+          <button
+            type="button"
+            aria-label="مسح البحث"
+            title="مسح البحث"
+            onClick={() => setSearch("")}
+            style={{
+              position: "absolute",
+              insetInlineStart: 8,
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: "var(--text-muted)",
+              lineHeight: 1,
+              padding: 4,
+            }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
       <div className="flex flex-wrap gap-2">
-        {items.map((s) =>
+        {visibleItems.map((s) =>
           editing?.id === s.id ? (
             <div key={s.id} className="flex gap-1 items-center">
               <input
@@ -139,6 +175,9 @@ export default function EntityListManager({
               </button>
             </div>
           )
+        )}
+        {needle && visibleItems.length === 0 && (
+          <p style={{ color: "var(--text-muted)", fontSize: "var(--fs-xs)" }}>لا توجد نتائج</p>
         )}
       </div>
     </div>
