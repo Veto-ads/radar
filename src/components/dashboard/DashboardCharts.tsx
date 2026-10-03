@@ -18,7 +18,7 @@ function collapseTopN(items: { label: string; count: number }[], n: number) {
 
 type DashboardData = {
   totals: { ads: number; companies: number; sectors: number; boards: number };
-  companiesToday: { name: string; count: number }[];
+  latestAds: { name: string; first_date: string; last_date: string }[];
   sectorsDist: { sector: string; count: number }[];
   sectorByMedia: { sector: string; board_type: string; count: number }[];
   topSectors: { sector: string; count: number }[];
@@ -35,12 +35,18 @@ function pieLegendWithPercent(labels: string[], values: number[]) {
 
 type Tile =
   | { title: string; kind: "chart"; cfg: ChartConfiguration; wide?: boolean }
-  | { title: string; kind: "ranked"; items: { label: string; count: number }[]; wide?: boolean; header?: ReactNode };
+  | { title: string; kind: "ranked"; items: { label: string; count: number; valueLabel?: string }[]; wide?: boolean; header?: ReactNode };
 
 export default function DashboardCharts({ data }: { data: DashboardData }) {
   const [companySector, setCompanySector] = useState("");
 
-  const companiesTodayRanked = data.companiesToday.map((c) => ({ label: c.name, count: c.count }));
+  // Newest campaigns first; the value shown is the date the company first appeared.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const latestAdsRanked = data.latestAds.map((c) => ({
+    label: c.name,
+    count: 1,
+    valueLabel: c.first_date === todayIso ? "اليوم" : c.first_date,
+  }));
 
   const sectorsTop5 = collapseTopN(
     data.sectorsDist.map((s) => ({ label: s.sector, count: s.count })),
@@ -100,10 +106,10 @@ export default function DashboardCharts({ data }: { data: DashboardData }) {
     options: { plugins: { legend: { display: false } } },
   };
 
-  // One row per company (unique by construction): the score is the total
-  // faces of every board type it appeared on, and the label lists those types.
+  // One row per company (unique by construction); the score is faces x booking
+  // cycles over the board types it appeared on, shown as a share of the total.
   const topRepeatedRanked = data.topRepeatedAds.map((a) => ({
-    label: `${a.company} — ${a.board_types.join(" + ")}`,
+    label: a.company,
     count: a.total_faces,
   }));
 
@@ -134,7 +140,7 @@ export default function DashboardCharts({ data }: { data: DashboardData }) {
   const topCompaniesTop7 = collapseTopN(topCompaniesSource, 7);
 
   const tiles: Tile[] = [
-    { title: "الشركات المعلنة اليوم", kind: "ranked", items: companiesTodayRanked },
+    { title: "أحدث الإعلانات", kind: "ranked", items: latestAdsRanked },
     { title: "القطاعات", kind: "chart", cfg: sectorsPieCfg },
     { title: "توزيع القطاعات على الوسائل", kind: "chart", cfg: stackedCfg, wide: true },
     { title: "أكثر القطاعات استحواذاً", kind: "chart", cfg: topSectorsCfg },

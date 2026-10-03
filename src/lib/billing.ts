@@ -64,51 +64,30 @@ export function applyMultiTypeDiscount(typeAmounts: number[]): number {
   return typeAmounts.length >= 2 ? total * (1 - MULTI_TYPE_DISCOUNT_RATE) : total;
 }
 
-export type BoardRepeatRow = {
+export type BoardCycleRow = {
   board_type: string;
-  repeats_per_day: number;
   duration: number;
   captured_date: string;
 };
 
-// Same "one rental window, one charge" idea as spendAmountsByType, but for
-// the AI's per-video repeats-per-day estimate instead of price: a company
-// re-sighted on the same board type before its rental window elapses is
-// still the same booking, so that re-sighting doesn't add a second
-// daily-repeat count on top — only the highest estimate seen within a given
-// window counts (defensive, in case two sightings within the same window
-// disagree), and only a sighting landing on/after the window's end opens a
-// new one whose repeats add to the total.
-function repeatsPerCycle(sorted: { date: string; repeats: number }[], durationDays: number): number[] {
-  if (sorted.length === 0) return [];
-  const cycles: number[] = [sorted[0].repeats];
-  let anchor = new Date(sorted[0].date).getTime();
-  for (let i = 1; i < sorted.length; i++) {
-    const current = new Date(sorted[i].date).getTime();
-    const diffDays = Math.round((current - anchor) / DAY_MS);
-    if (diffDays >= durationDays) {
-      cycles.push(sorted[i].repeats);
-      anchor = current;
-    } else {
-      cycles[cycles.length - 1] = Math.max(cycles[cycles.length - 1], sorted[i].repeats);
-    }
-  }
-  return cycles;
-}
-
-export function repeatsAmountsByType(rows: BoardRepeatRow[]): number[] {
-  const byType = new Map<string, { duration: number; entries: { date: string; repeats: number }[] }>();
+// Same grouping and cycle walk as spendAmountsByType, but keeps the type name
+// and returns the number of booking cycles per type instead of a price — the
+// shared basis for the dashboard's "how much did this company book" metrics
+// (a re-sighting inside an open rental window is not a new booking).
+export function billingCyclesByType(rows: BoardCycleRow[]): Map<string, number> {
+  const byType = new Map<string, { duration: number; dates: string[] }>();
   for (const r of rows) {
     const bucket = byType.get(r.board_type);
     if (bucket) {
-      bucket.entries.push({ date: r.captured_date, repeats: r.repeats_per_day });
+      bucket.dates.push(r.captured_date);
       bucket.duration = Math.max(bucket.duration, r.duration);
     } else {
-      byType.set(r.board_type, { duration: r.duration, entries: [{ date: r.captured_date, repeats: r.repeats_per_day }] });
+      byType.set(r.board_type, { duration: r.duration, dates: [r.captured_date] });
     }
   }
-  return Array.from(byType.values()).map(({ duration, entries }) => {
-    const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
-    return repeatsPerCycle(sorted, duration).reduce((sum, v) => sum + v, 0);
-  });
+  const cycles = new Map<string, number>();
+  for (const [type, { duration, dates }] of byType) {
+    cycles.set(type, countBillingCycles(Array.from(new Set(dates)).sort(), duration));
+  }
+  return cycles;
 }
