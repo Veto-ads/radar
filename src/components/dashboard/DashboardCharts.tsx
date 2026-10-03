@@ -40,13 +40,8 @@ type Tile =
 export default function DashboardCharts({ data }: { data: DashboardData }) {
   const [companySector, setCompanySector] = useState("");
 
-  // Newest campaigns first; the value shown is the date the company first appeared.
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const latestAdsRanked = data.latestAds.map((c) => ({
-    label: c.name,
-    count: 1,
-    valueLabel: c.first_date === todayIso ? "اليوم" : c.first_date,
-  }));
+  // Newest campaigns first; names only (an empty valueLabel hides the share bar).
+  const latestAdsRanked = data.latestAds.map((c) => ({ label: c.name, count: 1, valueLabel: "" }));
 
   const sectorsTop5 = collapseTopN(
     data.sectorsDist.map((s) => ({ label: s.sector, count: s.count })),
